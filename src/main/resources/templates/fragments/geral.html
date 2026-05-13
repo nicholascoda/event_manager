@@ -77,10 +77,13 @@
             <a href="/clientes" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/clientes') ? 'font-weight-bold text-primary' : ''}">Clientes</a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
-            <a href="/titulos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/titulos') ? 'font-weight-bold text-primary' : ''}">Títulos</a>
+            <a href="/titulos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/titulos') ? 'font-weight-bold text-primary' : ''}">Receitas</a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
             <a href="/agendamentos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/agendamentos') ? 'font-weight-bold text-primary' : ''}">Agendamentos</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+            <a th:href="@{/despesas}" class="nav-link"><i class="fas fa-arrow-circle-down text-danger mr-1"></i> Despesas</a>
         </li>
     </ul>
 
@@ -128,6 +131,23 @@
                 </li>
 
                 <li class="nav-item">
+                    <a th:href="@{/despesas}" class="nav-link">
+                        <i class="nav-icon fas fa-arrow-circle-down text-danger"></i>
+                        <p>
+                            Despesas
+                            <span class="right badge badge-danger">Saídas</span>
+                        </p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="/titulos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/titulos') ? 'active' : ''}">
+                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <p>Receitas</p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
                     <a href="/clientes" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/clientes') ? 'active' : ''}">
                         <i class="nav-icon fas fa-users"></i>
                         <p>Clientes</p>
@@ -135,17 +155,12 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="/titulos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/titulos') ? 'active' : ''}">
-                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                        <p>Títulos</p>
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a href="/agendamentos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/agendamentos') ? 'active' : ''}">
                         <i class="nav-icon fas fa-calendar-check"></i>
                         <p>Agendamentos</p>
                     </a>
                 </li>
+
 
             </ul>
         </nav>

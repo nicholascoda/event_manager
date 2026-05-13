@@ -78,4 +78,12 @@ public class ClienteService {
         // Gravando o Log de exclusão!
         logService.registrarAcao("EXCLUIR", "Cliente removido: " + cliente.getNomeEmpresa());
     }
+
+    public List<Cliente> listarSomenteClientes() {
+        return repository.buscarSomenteClientes();
+    }
+
+    public List<Cliente> listarSomenteFornecedores() {
+        return repository.buscarSomenteFornecedores();
+    }
 }

@@ -1,6 +1,7 @@
 package com.titu.core.controller;
 
 import com.titu.core.model.Cliente;
+import com.titu.core.model.Despesa;
 import com.titu.core.model.Titulo;
 import com.titu.core.repository.TituloRepository;
 import com.titu.core.service.ClienteService;
@@ -35,6 +36,7 @@ public class WebController {
     private final com.titu.core.repository.ClienteRepository clienteRepository;
     private final com.titu.core.repository.LogDisparoRepository logDisparoRepository;
     private final com.titu.core.service.AgendamentoService agendamentoService;
+    private final com.titu.core.service.DespesaService despesaService;
 
     @ModelAttribute("currentUri")
     public String getCurrentUri(HttpServletRequest request) {
@@ -116,7 +118,7 @@ public class WebController {
         List<Titulo> lista = tituloService.listarComFiltro(filtro, mes);
 
         model.addAttribute("titulos", lista);
-        model.addAttribute("clientes", clienteService.listarTodos());
+        model.addAttribute("clientes", clienteService.listarSomenteClientes());
         model.addAttribute("filtroAtivo", filtro);
         model.addAttribute("mesSelecionado", mes); // <-- Manda de volta pro HTML pra não perder
 
@@ -193,7 +195,7 @@ public class WebController {
         Titulo titulo = tituloService.buscarPorId(id);
 
         model.addAttribute("titulo", titulo);
-        model.addAttribute("clientes", clienteService.listarTodos());
+        model.addAttribute("clientes", clienteService.listarSomenteClientes());
 
         return "titulo-editar"; //
     }
@@ -340,7 +342,57 @@ public class WebController {
 
         return "redirect:/agendamentos";
     }
+// =========================================================================
+    // ROTAS DE DESPESAS (CONTAS A PAGAR)
+    // =========================================================================
 
+    @GetMapping("/despesas")
+    public String paginaDespesas(Model model) {
+        // Manda a lista de despesas pra tabela
+        model.addAttribute("despesas", despesaService.listarTodas());
+
+        // Manda SÓ os Fornecedores para o <select> do Modal
+        model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
+
+        return "despesas";
+    }
+
+    @PostMapping("/despesas/salvar")
+    public String salvarDespesa(Despesa despesa,
+                                @RequestParam(required = false) Long fornecedorId,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            despesaService.salvar(despesa, fornecedorId);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Despesa registrada com sucesso!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao salvar despesa: " + e.getMessage());
+        }
+        return "redirect:/despesas";
+    }
+
+    @GetMapping("/despesas/pagar/{id}")
+    public String darBaixaDespesa(@PathVariable Long id, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        try {
+            despesaService.darBaixa(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Despesa marcada como PAGA! Dinheiro saiu do caixa.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao processar pagamento.");
+        }
+
+        String urlAnterior = request.getHeader("Referer");
+        return (urlAnterior != null) ? "redirect:" + urlAnterior : "redirect:/despesas";
+    }
+
+    @GetMapping("/despesas/excluir/{id}")
+    public String excluirDespesa(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            despesaService.excluir(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Despesa apagada do sistema!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao apagar despesa.");
+        }
+        return "redirect:/despesas";
+    }
 
 
 }

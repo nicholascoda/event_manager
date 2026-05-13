@@ -18,6 +18,15 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ==========================================
+    // 🏢 DADOS DO PARCEIRO (ESTILO SAP)
+    // ==========================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'CLIENTE'")
+    @Builder.Default
+    private TipoParceiro tipoParceiro = TipoParceiro.CLIENTE;
+
     @NotBlank(message = "Nome da empresa é obrigatório")
     @Column(nullable = false)
     private String nomeEmpresa;
@@ -35,12 +44,12 @@ public class Cliente {
 
     private String cnpj;
 
-// ==========================================
+    // ==========================================
     // 🤖 CONFIGURAÇÕES DO ROBÔ DE COBRANÇA
     // ==========================================
 
     @Builder.Default
-    private Boolean usarRegrasGlobais = true; // Mudou para Boolean (maiúsculo), que aceita o null tambem.
+    private Boolean usarRegrasGlobais = true;
 
     @Builder.Default
     private Boolean preventivoAtivo = true;
