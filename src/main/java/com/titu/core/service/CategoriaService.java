@@ -6,6 +6,7 @@ import com.titu.core.repository.CategoriaRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -52,4 +53,14 @@ public class CategoriaService {
             salvar(new Categoria(null, "Outros", TipoCategoria.VARIAVEL));
         }
     }
+    @Transactional
+    public void excluir(Long id) {
+        // Verifica se existe antes de tentar deletar
+        if (!categoriaRepository.existsById(id)) {
+            throw new IllegalArgumentException("Categoria não encontrada.");
+        }
+        categoriaRepository.deleteById(id);
+    }
+
+
 }

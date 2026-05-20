@@ -22,7 +22,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">Gestão de Caixinhas</h2>
-                <p class="text-muted text-sm mb-0">Visão automática: Quanto foi reservado vs. Quanto já foi pago na Aba de Despesas.</p>
+                <p class="text-muted text-sm mb-0">Quanto foi reservado vs. quanto já foi pago — saldo das caixinhas</p>
             </div>
 
             <form action="/caixinhas" method="GET" class="form-inline bg-white p-2 rounded-pill shadow-sm border">
@@ -65,7 +65,7 @@
                                     <span class="text-primary font-weight-bold text-sm text-money" th:text="'R$ ' + ${#numbers.formatDecimal(c.totalArrecadado, 1, 'POINT', 2, 'COMMA')}"></span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
-                                    <span class="text-muted text-sm font-weight-bold">Já Pago (Aba 3):</span>
+                                    <span class="text-muted text-sm font-weight-bold">Já Pago:</span>
                                     <span class="text-success font-weight-bold text-sm text-money" th:text="'R$ ' + ${#numbers.formatDecimal(c.totalSacado, 1, 'POINT', 2, 'COMMA')}"></span>
                                 </div>
 

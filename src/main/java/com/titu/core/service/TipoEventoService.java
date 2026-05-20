@@ -5,6 +5,8 @@ import com.titu.core.repository.TipoEventoRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -51,4 +53,14 @@ public class TipoEventoService {
             System.err.println("⚠️ AVISO: Erro ao injetar Tipos de Evento automáticos. " + e.getMessage());
         }
     }
+
+    @Transactional
+    public void excluir(Long id) {
+        // Verifica se existe antes de tentar deletar
+        if (!repository.existsById(id)) {
+            throw new IllegalArgumentException("Tipo de evento não encontrado.");
+        }
+        repository.deleteById(id);
+    }
+
 }

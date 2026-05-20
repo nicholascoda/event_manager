@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/geral :: head}"></head>
+
+<body class="hold-transition sidebar-mini layout-fixed bg-light">
+<script>
+    if (localStorage.getItem('menuFechado') === 'true') document.body.classList.add('sidebar-collapse');
+</script>
+
+<div class="wrapper">
+    <nav th:replace="~{fragments/geral :: navbar}"></nav>
+    <aside th:replace="~{fragments/geral :: sidebar}"></aside>
+
+    <div class="content-wrapper px-3 py-4">
+
+        <div class="mb-4">
+            <h2 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">
+                <i class="fas fa-cogs text-muted mr-2"></i>Configurações do Sistema
+            </h2>
+            <p class="text-muted text-sm mb-0">Gerencie os tipos de festas e as categorias do seu fluxo de caixa.</p>
+        </div>
+
+        <section class="content p-0">
+            <div class="container-fluid p-0">
+
+                <div th:if="${mensagemSucesso}" class="alert alert-success shadow-sm rounded mb-3"><i class="fas fa-check mr-2"></i><span th:text="${mensagemSucesso}"></span></div>
+                <div th:if="${mensagemErro}" class="alert alert-danger shadow-sm rounded mb-3"><i class="fas fa-ban mr-2"></i><span th:text="${mensagemErro}"></span></div>
+
+                <div class="row mt-3">
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0 rounded-lg h-100">
+                            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-2">
+                                <h5 class="font-weight-bold text-dark mb-0"><i class="fas fa-glass-cheers text-info mr-2"></i>Tipos de Festa</h5>
+                                <button class="btn btn-sm btn-info font-weight-bold rounded-pill px-3 shadow-sm" data-toggle="modal" data-target="#modal-novo-tipo">
+                                    <i class="fas fa-plus mr-1"></i> Novo
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center p-3 border-light"
+                                        th:each="t : ${tiposEvento}"
+                                        th:if="${t.nome != 'Segunda' and t.nome != 'Terça' and t.nome != 'Quarta' and t.nome != 'Quinta' and t.nome != 'Sexta' and t.nome != 'Sábado' and t.nome != 'Domingo'}">
+
+                                        <div class="d-flex align-items-center">
+                                            <span class="rounded-circle mr-3 shadow-sm" th:style="'background-color: ' + ${t.cor} + '; width: 15px; height: 15px; display: inline-block;'"></span>
+                                            <span class="font-weight-bold text-dark" th:text="${t.nome}"></span>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-xs btn-outline-secondary mr-1" title="Editar"><i class="fas fa-edit"></i></button>
+
+                                            <a th:href="@{/tipos-evento/excluir/{id}(id=${t.id})}"
+                                               class="btn btn-xs btn-outline-danger"
+                                               title="Excluir"
+                                               onsubmit="return confirm('Tem certeza que deseja remover este tipo de festa?');">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0 rounded-lg h-100">
+                            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-2">
+                                <h5 class="font-weight-bold text-dark mb-0"><i class="fas fa-tags text-warning mr-2"></i>Categorias de Despesa</h5>
+                                <button class="btn btn-sm btn-warning text-dark font-weight-bold rounded-pill px-3 shadow-sm" data-toggle="modal" data-target="#modal-nova-categoria">
+                                    <i class="fas fa-plus mr-1"></i> Nova
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center p-3 border-light" th:each="c : ${categorias}">
+                                        <div class="d-flex flex-column">
+                                            <span class="font-weight-bold text-dark" th:text="${c.descricao}"></span>
+                                            <span class="text-xs font-weight-bold text-muted text-uppercase mt-1" th:text="${c.tipo.name() == 'PROVISAO' ? '📦 Provisão (Caixinha)' : '💸 Custo Variável'}"></span>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-xs btn-outline-secondary mr-1" title="Editar"><i class="fas fa-edit"></i></button>
+
+                                            <a th:href="@{/categorias/excluir/{id}(id=${c.id})}"
+                                               class="btn btn-xs btn-outline-danger"
+                                               title="Excluir"
+                                               onsubmit="return confirm('Tem certeza que deseja remover esta categoria?');">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-12 mb-3">
+                        <h5 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">
+                            <i class="fas fa-headset text-muted mr-2"></i>Central de Ajuda
+                        </h5>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0 rounded-lg h-100">
+                            <div class="card-body p-4 text-center">
+                                <img class="profile-user-img img-fluid img-circle shadow-sm mb-3 border-0"
+                                     src="https://ui-avatars.com/api/?name=Suporte+Titu&background=0D8ABC&color=fff&size=100"
+                                     alt="User profile picture">
+
+                                <h4 class="font-weight-bold text-dark mb-0">Suporte Titu System</h4>
+                                <p class="text-muted text-sm mb-4">Desenvolvedor Full Stack</p>
+
+                                <ul class="list-group list-group-flush text-left mb-4">
+                                    <li class="list-group-item px-0 border-light text-sm">
+                                        <b><i class="fas fa-envelope text-muted mr-2"></i>Email</b> <span class="float-right text-dark font-weight-bold">suporte@titu.com.br</span>
+                                    </li>
+                                    <li class="list-group-item px-0 border-light text-sm">
+                                        <b><i class="fab fa-whatsapp text-success mr-2"></i>WhatsApp</b> <span class="float-right text-dark font-weight-bold">(21) 99999-9999</span>
+                                    </li>
+                                    <li class="list-group-item px-0 border-light text-sm">
+                                        <b><i class="fas fa-clock text-muted mr-2"></i>Horário</b> <span class="float-right text-dark font-weight-bold">09:00 - 18:00</span>
+                                    </li>
+                                </ul>
+
+                                <a href="https://wa.me/5521999999999" target="_blank" class="btn btn-primary btn-block font-weight-bold rounded-pill shadow-sm">
+                                    <i class="fab fa-whatsapp mr-2"></i> Abrir Chamado (WhatsApp)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0 rounded-lg h-100">
+                            <div class="card-header bg-white border-0 pt-4 pb-2">
+                                <h5 class="font-weight-bold text-dark mb-0"><i class="fas fa-question-circle text-primary mr-2"></i>Dúvidas Comuns</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="mb-4">
+                                    <h6 class="font-weight-bold text-dark mb-1"><i class="fas fa-key text-muted mr-2"></i>Como alterar a senha?</h6>
+                                    <p class="text-muted text-sm mb-0">Acesse Configurações > Perfil para alterar seus dados de acesso (Em breve).</p>
+                                </div>
+                                <hr class="border-light">
+                                <div class="mt-4 mb-4">
+                                    <h6 class="font-weight-bold text-dark mb-1"><i class="fas fa-lock text-muted mr-2"></i>Como funciona o fechamento do mês?</h6>
+                                    <p class="text-muted text-sm mb-0">Ao clicar em "Finalizar Mês" no Diário, o sistema congela a competência e impede qualquer edição ou exclusão no passado para proteger sua auditoria.</p>
+                                </div>
+                                <hr class="border-light">
+                                <div class="mt-4">
+                                    <h6 class="font-weight-bold text-dark mb-1"><i class="fas fa-file-invoice-dollar text-muted mr-2"></i>O robô cobra fim de semana?</h6>
+                                    <p class="text-muted text-sm mb-0">Sim! O robô não descansa. Ele envia relatórios e alertas todos os dias às 08:00.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+    <footer th:replace="~{fragments/geral :: footer}"></footer>
+</div>
+
+<div class="modal fade" id="modal-nova-categoria">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form th:action="@{/categorias/salvar}" method="POST">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-tag mr-2"></i>Nova Categoria</h5>
+                    <button type="button" class="close text-dark" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="form-group">
+                        <label class="text-xs text-muted text-uppercase font-weight-bold">Nome da Categoria</label>
+                        <input type="text" name="descricao" class="form-control font-weight-bold text-dark" placeholder="Ex: Impostos, Marketing..." required>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="text-xs text-muted text-uppercase font-weight-bold">Classificação</label>
+                        <select name="tipo" class="form-control font-weight-bold text-dark" required>
+                            <option th:each="tipo : ${tiposCategoria}" th:value="${tipo}" th:text="${tipo.name() == 'PROVISAO' ? 'Provisão (Caixinha)' : 'Custo Variável'}"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="submit" class="btn btn-warning btn-block font-weight-bold shadow-sm">Cadastrar Categoria</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-novo-tipo">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form th:action="@{/tipos-evento/salvar}" method="POST">
+                <div class="modal-header bg-info text-white border-0">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-glass-cheers mr-2"></i>Nova Festa</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="form-group">
+                        <label class="text-xs text-muted text-uppercase font-weight-bold">Nome da Festa</label>
+                        <input type="text" name="nome" class="form-control font-weight-bold text-dark" placeholder="Ex: Quinta Sertaneja" required>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="text-xs text-muted text-uppercase font-weight-bold">Cor no Gráfico</label>
+                        <input type="color" name="cor" class="form-control p-1 border-0 bg-transparent" value="#17a2b8" required style="height: 40px; cursor: pointer;">
+                    </div>
+                    <label class="text-xs text-muted mb-1">Festas Já Cadastradas:</label>
+                    <ul class="list-group list-group-flush text-sm" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd;">
+                        <li class="list-group-item p-2 py-1" th:each="t : ${tiposEvento}" th:if="${t.nome != 'Segunda' and t.nome != 'Terça' and t.nome != 'Quarta' and t.nome != 'Quinta' and t.nome != 'Sexta' and t.nome != 'Sábado' and t.nome != 'Domingo'}">                            <span th:style="'color: ' + ${t.cor} + '; font-weight: 800;'" th:text="${t.nome}"></span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="modal-footer border-0 bg-light">
+                    <button type="submit" class="btn btn-info btn-block font-weight-bold shadow-sm">Cadastrar Festa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/geral :: scripts}"></div>
+</body>
+</html>

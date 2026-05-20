@@ -320,5 +320,39 @@ public class WebController {
         return "dashboard";
     }
 
+    // =========================================================================
+    // ROTAS DE CONFIGURAÇÕES & PAINEL DE CONTROLE
+    // =========================================================================
+
+    @GetMapping("/configuracoes")
+    public String paginaConfiguracoes(Model model) {
+        model.addAttribute("tiposEvento", tipoEventoService.listarTodos());
+        model.addAttribute("categorias", categoriaService.listarTodas());
+        model.addAttribute("tiposCategoria", com.titu.core.model.TipoCategoria.values());
+        return "configuracoes";
+    }
+
+    @GetMapping("/tipos-evento/excluir/{id}")
+    public String excluirTipoEvento(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            tipoEventoService.excluir(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Tipo de evento removido do sistema!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Não é possível excluir: Este tipo de festa já possui eventos lançados no Diário.");
+        }
+        return "redirect:/configuracoes";
+    }
+
+    @GetMapping("/categorias/excluir/{id}")
+    public String excluirCategoria(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            categoriaService.excluir(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Categoria de despesa excluída com sucesso!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Não é possível excluir: Esta categoria possui contas vinculadas na aba de Despesas.");
+        }
+        return "redirect:/configuracoes";
+    }
+
 
 }
