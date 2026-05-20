@@ -4,6 +4,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Titu Gestão | Financeiro</title>
 
+    <!-- Segurança do Spring Boot para requisições AJAX -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
     <link rel="icon" type="image/png" href="/img/titu.png">
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -77,14 +81,14 @@
             <a href="/clientes" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/clientes') ? 'font-weight-bold text-primary' : ''}">Clientes</a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
-            <a href="/titulos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/titulos') ? 'font-weight-bold text-primary' : ''}">Receitas</a>
-        </li>
-        <li class="nav-item d-none d-sm-inline-block">
-            <a href="/agendamentos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/agendamentos') ? 'font-weight-bold text-primary' : ''}">Agendamentos</a>
-        </li>
-        <li class="nav-item d-none d-sm-inline-block">
             <a th:href="@{/despesas}" class="nav-link"><i class="fas fa-arrow-circle-down text-danger mr-1"></i> Despesas</a>
         </li>
+        <li class="nav-item d-none d-sm-inline-block">
+            <a href="/eventos" class="nav-link font-weight-bold text-dark">
+                <i class="fas fa-calendar-check mr-1"></i>Diário
+            </a>
+        </li>
+
     </ul>
 
     <ul class="navbar-nav ml-auto">
@@ -141,13 +145,6 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="/titulos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/titulos') ? 'active' : ''}">
-                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                        <p>Receitas</p>
-                    </a>
-                </li>
-
-                <li class="nav-item">
                     <a href="/clientes" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/clientes') ? 'active' : ''}">
                         <i class="nav-icon fas fa-users"></i>
                         <p>Clientes</p>
@@ -155,9 +152,9 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="/agendamentos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/agendamentos') ? 'active' : ''}">
+                    <a href="/eventos" class="nav-link" th:classappend="${currentUri == '/eventos'} ? 'active'">
                         <i class="nav-icon fas fa-calendar-check"></i>
-                        <p>Agendamentos</p>
+                        <p>Diário</p>
                     </a>
                 </li>
 

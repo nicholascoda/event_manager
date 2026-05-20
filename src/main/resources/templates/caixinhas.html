@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/geral :: head}"></head>
+
+<body class="hold-transition sidebar-mini layout-fixed bg-light">
+<script>
+    if (localStorage.getItem('menuFechado') === 'true') document.body.classList.add('sidebar-collapse');
+</script>
+
+<style>
+    .card-modern { border-radius: 12px; border: none; transition: transform 0.2s; }
+    .card-modern:hover { transform: translateY(-5px); }
+    .text-money { font-family: 'Courier New', Courier, monospace; letter-spacing: -0.5px; }
+</style>
+
+<div class="wrapper">
+    <nav th:replace="~{fragments/geral :: navbar}"></nav>
+    <aside th:replace="~{fragments/geral :: sidebar}"></aside>
+
+    <div class="content-wrapper px-3 py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">Gestão de Caixinhas</h2>
+                <p class="text-muted text-sm mb-0">Visão automática: Quanto foi reservado vs. Quanto já foi pago na Aba de Despesas.</p>
+            </div>
+
+            <form action="/caixinhas" method="GET" class="form-inline bg-white p-2 rounded-pill shadow-sm border">
+                <i class="fas fa-calendar-alt mx-3 text-primary"></i>
+                <select name="mes" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" onchange="this.form.submit()">
+                    <option value="1" th:selected="${mesSelecionado == 1}">Janeiro</option>
+                    <option value="2" th:selected="${mesSelecionado == 2}">Fevereiro</option>
+                    <option value="3" th:selected="${mesSelecionado == 3}">Março</option>
+                    <option value="4" th:selected="${mesSelecionado == 4}">Abril</option>
+                    <option value="5" th:selected="${mesSelecionado == 5}">Maio</option>
+                    <option value="6" th:selected="${mesSelecionado == 6}">Junho</option>
+                    <option value="7" th:selected="${mesSelecionado == 7}">Julho</option>
+                    <option value="8" th:selected="${mesSelecionado == 8}">Agosto</option>
+                    <option value="9" th:selected="${mesSelecionado == 9}">Setembro</option>
+                    <option value="10" th:selected="${mesSelecionado == 10}">Outubro</option>
+                    <option value="11" th:selected="${mesSelecionado == 11}">Novembro</option>
+                    <option value="12" th:selected="${mesSelecionado == 12}">Dezembro</option>
+                </select>
+                <span class="mx-2 text-muted">/</span>
+                <input type="number" name="ano" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" style="width: 70px;" th:value="${anoSelecionado}" onchange="this.form.submit()">
+            </form>
+        </div>
+
+        <section class="content p-0">
+            <div class="container-fluid p-0">
+                <div class="row mt-3">
+                    <div class="col-lg-3 col-md-6 mb-4" th:each="c : ${caixinhas}">
+                        <div class="card card-modern shadow-sm h-100">
+
+                            <div class="card-header border-0 text-center pt-4 pb-2 bg-white rounded-top">
+                                <div th:class="'mb-3 shadow-sm ' + ${c.cor}" style="width:60px; height:60px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:24px; color: white;">
+                                    <i th:class="${c.icone}"></i>
+                                </div>
+                                <h5 class="font-weight-bold text-dark text-uppercase mb-0" th:text="${c.nomeVisivel}"></h5>
+                            </div>
+
+                            <div class="card-body px-4 py-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted text-sm font-weight-bold">Provisionado:</span>
+                                    <span class="text-primary font-weight-bold text-sm text-money" th:text="'R$ ' + ${#numbers.formatDecimal(c.totalArrecadado, 1, 'POINT', 2, 'COMMA')}"></span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                                    <span class="text-muted text-sm font-weight-bold">Já Pago (Aba 3):</span>
+                                    <span class="text-success font-weight-bold text-sm text-money" th:text="'R$ ' + ${#numbers.formatDecimal(c.totalSacado, 1, 'POINT', 2, 'COMMA')}"></span>
+                                </div>
+
+                                <div class="text-center mt-3 mb-2">
+                                    <span class="text-xs text-muted d-block text-uppercase font-weight-bold mb-1">Saldo da Caixinha</span>
+                                    <h3 class="font-weight-bold text-money" th:classappend="${c.saldoAtual.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-dark' : 'text-danger'" th:text="'R$ ' + ${#numbers.formatDecimal(c.saldoAtual, 1, 'POINT', 2, 'COMMA')}"></h3>
+                                </div>
+
+                                <div class="text-center text-xs text-muted font-italic" th:if="${c.saldoAtual.compareTo(T(java.math.BigDecimal).ZERO) < 0}">
+                                    <i class="fas fa-exclamation-triangle text-danger"></i> Gastou mais do que reservou!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <footer th:replace="~{fragments/geral :: footer}"></footer>
+</div>
+
+<div th:replace="~{fragments/geral :: scripts}"></div>
+</body>
+</html>

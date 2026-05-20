@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/geral :: head}"></head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+<script>
+    if (localStorage.getItem('menuFechado') === 'true') {
+        document.body.classList.add('sidebar-collapse');
+    }
+</script>
+
+<style>
+    .th-identificacao { background-color: #444444; color: white; }
+    .th-receita { background-color: #28a745; color: white; }
+    .th-custos { background-color: #dc3545; color: white; }
+    .th-resultado { background-color: #1a2233; color: white; }
+    .table-bordered th, .table-bordered td { border: 1px solid #dee2e6; vertical-align: middle; }
+
+    /* MAGIA DA BARRA DE ROLAGEM E CABEÇALHO FIXO */
+    .table-responsive { max-height: 65vh; overflow-y: auto; }
+    .table-responsive thead th { position: sticky; top: 0; z-index: 10; box-shadow: inset 0 -1px 0 #dee2e6; }
+    .table-responsive thead tr:nth-child(2) th { top: 35px; }
+
+    /* Efeito de célula clicável (Excel Mode) */
+    .editavel { cursor: pointer; transition: 0.2s; border-bottom: 1px dashed #ccc !important; }
+    .editavel:hover { background-color: #fff3cd !important; transform: scale(1.02); }
+    .inline-input { width: 100px; padding: 2px; text-align: right; }
+</style>
+
+<div class="wrapper">
+    <nav th:replace="~{fragments/geral :: navbar}"></nav>
+    <aside th:replace="~{fragments/geral :: sidebar}"></aside>
+
+    <div class="content-wrapper">
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2 align-items-center">
+                    <div class="col-sm-4">
+                        <h1 class="m-0 font-weight-bold text-dark"><i class="fas fa-calendar-check text-muted mr-2"></i>Controle Diário</h1>
+                        <p class="text-muted text-sm mb-0">Receita do bar, custos e lucro.</p>
+                    </div>
+                    <div class="col-sm-8 text-right">
+                        <button class="btn btn-outline-info shadow-sm mr-2" data-toggle="modal" data-target="#modal-novo-tipo">
+                            <i class="fas fa-tags"></i> Cadastrar Tipo
+                        </button>
+                        <button class="btn btn-outline-dark shadow-sm mr-2" data-toggle="modal" data-target="#modal-gerar-mes">
+                            <i class="fas fa-calendar-alt"></i> Gerar Mês
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container-fluid">
+
+                <div th:if="${mensagemSucesso}" class="alert alert-success alert-dismissible shadow-sm mt-2">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                    <h5><i class="icon fas fa-check"></i> Sucesso!</h5>
+                    <span th:text="${mensagemSucesso}"></span>
+                </div>
+
+                <div th:if="${mensagemErro}" class="alert alert-danger alert-dismissible shadow-sm mt-2">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                    <h5><i class="icon fas fa-ban"></i> Atenção!</h5>
+                    <span th:text="${mensagemErro}"></span>
+                </div>
+
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-12">
+                        <form action="/eventos" method="GET" class="form-inline bg-white p-2 rounded shadow-sm border">
+                            <label class="mr-2 font-weight-bold text-dark"><i class="fas fa-filter mr-1 text-muted"></i> Competência:</label>
+
+                            <select name="mes" class="form-control form-control-sm mr-2" onchange="this.form.submit()">
+                                <option value="1" th:selected="${mesSelecionado == 1}">Janeiro</option>
+                                <option value="2" th:selected="${mesSelecionado == 2}">Fevereiro</option>
+                                <option value="3" th:selected="${mesSelecionado == 3}">Março</option>
+                                <option value="4" th:selected="${mesSelecionado == 4}">Abril</option>
+                                <option value="5" th:selected="${mesSelecionado == 5}">Maio</option>
+                                <option value="6" th:selected="${mesSelecionado == 6}">Junho</option>
+                                <option value="7" th:selected="${mesSelecionado == 7}">Julho</option>
+                                <option value="8" th:selected="${mesSelecionado == 8}">Agosto</option>
+                                <option value="9" th:selected="${mesSelecionado == 9}">Setembro</option>
+                                <option value="10" th:selected="${mesSelecionado == 10}">Outubro</option>
+                                <option value="11" th:selected="${mesSelecionado == 11}">Novembro</option>
+                                <option value="12" th:selected="${mesSelecionado == 12}">Dezembro</option>
+                            </select>
+
+                            <input type="number" name="ano" class="form-control form-control-sm mr-2" style="width: 80px;" th:value="${anoSelecionado}" onchange="this.form.submit()">
+
+                            <span class="ml-auto text-muted text-sm border-left pl-3">Exibindo apenas os eventos deste mês.</span>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-top border-dark">
+                    <div class="card-body p-0">
+                        <div class="table-responsive text-nowrap">
+
+                            <select id="template-tipos" style="display:none;">
+                                <option th:each="t : ${tiposEvento}" th:value="${t.id}" th:text="${t.nome}" th:attr="data-cor=${t.cor}"></option>
+                            </select>
+
+                            <table class="table table-bordered table-hover text-sm mb-0">
+                                <thead>
+                                <tr>
+                                    <th class="th-identificacao text-center" colspan="2">IDENTIFICAÇÃO</th>
+                                    <th class="th-receita text-center">RECEITA</th>
+                                    <th class="th-custos text-center" colspan="10">CUSTOS DIRETOS (Saem na hora ou provisionados)</th>
+                                    <th class="th-resultado text-center" colspan="3">RESULTADO</th>
+                                    <th class="th-identificacao text-center" rowspan="2">Ações</th>
+                                </tr>
+                                <tr class="text-center">
+                                    <th class="th-identificacao">DATA</th>
+                                    <th class="th-identificacao">EVENTO</th>
+                                    <th class="th-receita">BAR (Receita)</th>
+                                    <th class="th-custos">Custo Bar [prov]</th>
+                                    <th class="th-custos">Problemas [na hora]</th>
+                                    <th class="th-custos">Diárias/Comp. [na hora]</th>
+                                    <th class="th-custos">Promoters [na hora]</th>
+                                    <th class="th-custos">DJ/Pagode [na hora]</th>
+                                    <th class="th-custos">Segurança [na hora]</th>
+                                    <th class="th-custos">Som [na hora]</th>
+                                    <th class="th-custos">Sócios [prov]</th>
+                                    <th class="th-custos">Decoração [prov]</th>
+                                    <th class="th-custos">Taxa [prov]</th>
+                                    <th class="th-resultado">Total Custos</th>
+                                    <th class="th-resultado">LUCRO DO DIA</th>
+                                    <th class="th-resultado">Margem</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="evento : ${eventos}" class="text-right" th:id="'linha-' + ${evento.id}" th:attr="data-dia-semana=${evento.diaDaSemana}">
+                                    <td class="text-center" th:text="${#temporals.format(evento.dataEvento, 'dd/MM/yyyy')}"></td>
+
+                                    <td class="text-center font-weight-bold editavel"
+                                        th:style="'color: ' + ${evento.tipoEvento.cor} + '!important;'"
+                                        th:attr="data-id=${evento.id}, data-campo='tipoEvento', data-valor=${evento.tipoEvento.id}"
+                                        th:text="${evento.tipoEvento.nome}"></td>
+
+                                    <td class="text-success font-weight-bold editavel"
+                                        th:attr="data-id=${evento.id}, data-campo='receitaBar', data-valor=${evento.receitaBar}"
+                                        th:text="'R$ ' + ${#numbers.formatDecimal(evento.receitaBar, 1, 'POINT', 2, 'COMMA')}"></td>
+
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoCustoBar', data-valor=${evento.provisaoCustoBar}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoCustoBar, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoProblemas', data-valor=${evento.custoProblemas}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoProblemas, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoDiarias', data-valor=${evento.custoDiarias}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoDiarias, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoPromoters', data-valor=${evento.custoPromoters}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoPromoters, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoDjPagode', data-valor=${evento.custoDjPagode}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoDjPagode, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoSeguranca', data-valor=${evento.custoSeguranca}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoSeguranca, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoSom', data-valor=${evento.custoSom}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoSom, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoSocios', data-valor=${evento.provisaoSocios}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoSocios, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoDecoracao', data-valor=${evento.provisaoDecoracao}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoDecoracao, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoTaxa', data-valor=${evento.provisaoTaxa}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoTaxa, 1, 'POINT', 2, 'COMMA')}"></td>
+
+                                    <td class="text-danger font-weight-bold res-total" th:text="'R$ ' + ${#numbers.formatDecimal(evento.totalCustos, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="text-primary font-weight-bold res-lucro" th:text="'R$ ' + ${#numbers.formatDecimal(evento.lucroDoDia, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td class="text-primary font-weight-bold res-margem" th:text="${#numbers.formatDecimal(evento.margem, 1, 'POINT', 1, 'COMMA')} + '%'"></td>
+
+                                    <td class="text-center">
+                                        <a th:href="@{/eventos/excluir/{id}(id=${evento.id})}" class="btn btn-xs btn-outline-danger" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(eventos)}">
+                                    <td colspan="17" class="text-center text-muted p-4">Nenhum evento registrado nesta competência. Use o botão "Gerar Mês".</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content mt-2 mb-5">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0 rounded-lg">
+                            <div class="card-body p-4 d-flex justify-content-between align-items-center bg-white">
+                                <div>
+                                    <h5 class="font-weight-bold text-dark mb-1">
+                                        <i class="fas fa-history mr-2 text-muted"></i>Salvar Dados do Mês
+                                    </h5>
+                                    <p class="text-muted text-sm mb-0">
+                                        Após finalizar o mês, o sistema tranca todas as edições, exclusões e lançamentos.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <div th:if="${mesTrancado}">
+                                        <span class="btn btn-danger font-weight-bold px-4 rounded-pill shadow-sm" style="cursor: not-allowed;">
+                                            <i class="fas fa-lock mr-2"></i> MÊS CONCLUÍDO E TRANCADO
+                                        </span>
+                                    </div>
+
+                                    <div th:if="${!mesTrancado}" class="d-flex align-items-center">
+                                        <button class="btn btn-outline-danger font-weight-bold px-3 rounded-pill shadow-sm mr-3" data-toggle="modal" data-target="#modal-apagar-mes">
+                                            <i class="fas fa-trash-alt mr-1"></i> Limpar Mês
+                                        </button>
+
+                                        <form th:action="@{/eventos/fechar}" method="POST" onsubmit="return confirm('Tem certeza que deseja finalizar este mês? Todas as informações de eventos e despesas deste período serão congeladas para auditoria.');">
+                                            <input type="hidden" name="mes" th:value="${mesSelecionado}">
+                                            <input type="hidden" name="ano" th:value="${anoSelecionado}">
+                                            <button type="submit" class="btn btn-success font-weight-bold px-4 rounded-pill shadow-sm">
+                                                <i class="fas fa-check-circle mr-2"></i> Finalizar Mês e Salvar Histórico
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+    <footer th:replace="~{fragments/geral :: footer}"></footer>
+</div>
+
+<div class="modal fade" id="modal-novo-tipo">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form th:action="@{/tipos-evento/salvar}" method="POST">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fas fa-tags mr-2"></i>Tipos de Evento</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="form-group mb-2">
+                        <label class="text-xs">Nome da Festa</label>
+                        <input type="text" name="nome" class="form-control form-control-sm" placeholder="Ex: Noite do Flashback" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="text-xs">Cor de Destaque</label>
+                        <input type="color" name="cor" class="form-control form-control-sm p-0 border-0" value="#17a2b8" required style="height: 30px;">
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-info w-100 font-weight-bold shadow-sm">Cadastrar Novo</button>
+
+                    <hr class="mt-4 mb-2">
+
+                    <label class="text-xs text-muted mb-1">Festas Já Cadastradas:</label>
+                    <ul class="list-group list-group-flush text-sm" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd;">
+                        <li class="list-group-item p-2 py-1" th:each="t : ${tiposEvento}" th:if="${t.nome != 'Segunda' and t.nome != 'Terça' and t.nome != 'Quarta' and t.nome != 'Quinta' and t.nome != 'Sexta' and t.nome != 'Sábado' and t.nome != 'Domingo'}">                            <span th:style="'color: ' + ${t.cor} + '; font-weight: 800;'" th:text="${t.nome}"></span>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-gerar-mes">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form th:action="@{/eventos/gerar-mes}" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="fas fa-calendar-plus mr-2"></i>Gerar Agenda</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-sm text-muted">Isso criará automaticamente todos os dias do mês na tabela com valores zerados.</p>
+                    <div class="form-group">
+                        <label>Mês</label>
+                        <select name="mes" class="form-control" required>
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ano</label>
+                        <input type="number" name="ano" class="form-control" th:value="${#dates.year(#dates.createNow())}" required>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between p-2">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-dark">Gerar Dias</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-apagar-mes">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form th:action="@{/eventos/apagar-mes}" method="POST">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Apagar Mês</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-sm text-muted"><strong>Atenção:</strong> Isso apagará <b>todos</b> os eventos do mês selecionado. Essa ação não pode ser desfeita.</p>
+                    <div class="form-group">
+                        <label>Mês</label>
+                        <select name="mes" class="form-control" required>
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ano</label>
+                        <input type="number" name="ano" class="form-control" th:value="${#dates.year(#dates.createNow())}" required>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between p-2">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-danger">Sim, Apagar Tudo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/geral :: scripts}"></div>
+
+<script th:inline="none">
+    // (O seu script do Excel Mode continua intacto aqui)
+    $(function () {
+        var token = $("meta[name='_csrf']").attr("content");
+        var header = $("meta[name='_csrf_header']").attr("content");
+        if (token && header) {
+            $(document).ajaxSend(function(e, xhr, options) {
+                xhr.setRequestHeader(header, token);
+            });
+        }
+
+        $('.editavel').on('click', function() {
+            let $td = $(this);
+            if ($td.find('input, select').length > 0) return;
+
+            let id = $td.data('id');
+            let campo = $td.data('campo');
+            let valorAtual = $td.attr('data-valor');
+            let isTipoEvento = (campo === 'tipoEvento');
+
+            let inputHtml = '';
+            if (isTipoEvento) {
+                let diaDaLinha = $td.closest('tr').data('dia-semana');
+                let diasDaSemana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+
+                let optionsHtml = '';
+                $('#template-tipos option').each(function() {
+                    let nomeOpcao = $(this).text();
+                    let isDia = diasDaSemana.includes(nomeOpcao);
+
+                    if (!isDia || nomeOpcao === diaDaLinha) {
+                        optionsHtml += $(this)[0].outerHTML;
+                    }
+                });
+                inputHtml = `<select class="form-control form-control-sm text-center font-weight-bold">${optionsHtml}</select>`;
+            } else {
+                inputHtml = `<input type="number" step="0.01" class="form-control form-control-sm inline-input font-weight-bold text-dark" value="${valorAtual}">`;
+            }
+
+            let textoOriginal = $td.html();
+            $td.html(inputHtml);
+
+            let $input = $td.find('input, select');
+            if (isTipoEvento) { $input.val(valorAtual); }
+
+            $input.focus();
+            if (!isTipoEvento) $input.select();
+
+            $input.on('blur change keypress', function(e) {
+                if (e.type === 'keypress' && e.which !== 13) return;
+
+                let novoValor = $input.val();
+
+                if (novoValor == valorAtual && (e.type === 'blur' || e.type === 'change')) {
+                    $td.html(textoOriginal);
+                    return;
+                }
+
+                $.post('/eventos/atualizar-campo', {id: id, campo: campo, valor: novoValor}, function(response) {
+                    $td.attr('data-valor', novoValor);
+
+                    if (isTipoEvento) {
+                        let nomeSelecionado = $input.find('option:selected').text();
+                        let corSelecionada = $input.find('option:selected').data('cor');
+
+                        $td.text(nomeSelecionado);
+                        $td.css('color', corSelecionada, 'important');
+                    } else {
+                        $td.html('R$ ' + parseFloat(novoValor).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                        let tr = $('#linha-' + id);
+                        tr.find('.res-total').text('R$ ' + response.totalCustos.toLocaleString('pt-BR', {minimumFractionDigits: 2}));
+                        tr.find('.res-lucro').text('R$ ' + response.lucroDoDia.toLocaleString('pt-BR', {minimumFractionDigits: 2}));
+                        tr.find('.res-margem').text(response.margem.toLocaleString('pt-BR', {minimumFractionDigits: 1}) + '%');
+                    }
+                }).fail(function() {
+                    alert('Erro ao salvar no banco. Verifique a internet ou recarregue a página.');
+                    $td.html(textoOriginal);
+                });
+            });
+        });
+    });
+</script>
+</body>
+</html>

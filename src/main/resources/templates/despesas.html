@@ -18,12 +18,10 @@
             <div class="container-fluid">
                 <div class="row mb-2 align-items-center">
                     <div class="col-sm-6">
-                        <h1 class="m-0 font-weight-bold"><i class="fas fa-arrow-circle-down mr-2"></i>Despesas</h1>
-                        <p class="text-muted text-sm mb-0">Controle de contas a pagar e saídas do caixa.</p>
+                        <h1 class="m-0 font-weight-bold text-dark"><i class="fas fa-arrow-circle-down text-muted mr-2"></i>Fluxo de Caixa (Saídas)</h1>                        <p class="text-muted text-sm mb-0">Lançamento de despesas provisionadas e variáveis.</p>
                     </div>
                     <div class="col-sm-6 text-right">
-                        <button class="btn btn-danger shadow-sm" data-toggle="modal" data-target="#modal-nova-despesa">
-                            <i class="fas fa-plus"></i> Nova Despesa
+                        <button class="btn btn-dark shadow-sm" data-toggle="modal" data-target="#modal-nova-despesa">                            <i class="fas fa-plus"></i> Novo Lançamento
                         </button>
                     </div>
                 </div>
@@ -45,16 +43,16 @@
                     <span th:text="${mensagemErro}"></span>
                 </div>
 
-                <div class="card shadow-sm border-top border-danger">
-                    <div class="card-body p-0">
+                <div class="card shadow-sm border-top border-dark">                    <div class="card-body p-0">
                         <table id="tabela-despesas" class="table table-striped table-valign-middle">
                             <thead class="bg-light">
                             <tr>
-                                <th>#</th>
+                                <th>Data</th>
+                                <th>Doc</th>
                                 <th>Descrição</th>
+                                <th>Favorecido</th>
+                                <th>Pgto</th>
                                 <th>Categoria</th>
-                                <th>Fornecedor</th>
-                                <th>Vencimento</th>
                                 <th>Valor</th>
                                 <th>Status</th>
                                 <th>Ações</th>
@@ -62,76 +60,44 @@
                             </thead>
                             <tbody>
                             <tr th:each="despesa : ${despesas}">
-                                <td th:text="${despesa.id}" class="text-muted text-sm">1</td>
-                                <td class="font-weight-bold" th:text="${despesa.descricao}">Ifood</td>
-                                <td><span class="badge badge-secondary" th:text="${despesa.categoria}">Alimentação</span></td>
+                                <td th:text="${#temporals.format(despesa.dataLancamento, 'dd/MM/yyyy')}">10/02/2026</td>
+                                <td th:text="${despesa.numeroDocumento ?: '-'}">123</td>
+                                <td class="font-weight-bold" th:text="${despesa.descricao}">Compra</td>
 
                                 <td>
-                                    <span th:if="${despesa.fornecedor != null}" th:text="${despesa.fornecedor.nomeEmpresa}">Padaria</span>
-                                    <em th:if="${despesa.fornecedor == null}" class="text-muted text-sm">Despesa Avulsa</em>
+                                    <span th:if="${despesa.fornecedor != null}" th:text="${despesa.fornecedor.nomeEmpresa}">Fornecedor</span>
+                                    <em th:if="${despesa.fornecedor == null}" class="text-muted text-sm">Avulso</em>
                                 </td>
 
-                                <td th:text="${#temporals.format(despesa.dataVencimento, 'dd/MM/yyyy')}">10/02/2026</td>
+                                <td th:text="${despesa.formaPagamento}">PIX</td>
+
+                                <td>
+                                    <span class="badge" th:classappend="${despesa.categoria.tipo.name() == 'PROVISAO' ? 'badge-info' : 'badge-warning'}"
+                                          th:text="${despesa.categoria.descricao}">Categoria</span>
+                                </td>
+
                                 <td class="text-danger font-weight-bold" th:text="'R$ ' + ${#numbers.formatDecimal(despesa.valor, 1, 'POINT', 2, 'COMMA')}">R$ 1.000,00</td>
                                 <td>
                                     <span th:if="${despesa.status.name() == 'PAGO'}" class="badge bg-success">Pago</span>
-
-                                    <span th:if="${despesa.status.name() == 'PENDENTE' and !despesa.dataVencimento.isBefore(#temporals.createToday())}"
-                                          class="badge bg-warning">Pendente</span>
-
-                                    <span th:if="${despesa.status.name() == 'PENDENTE' and despesa.dataVencimento.isBefore(#temporals.createToday())}"
-                                          class="badge bg-danger">Atrasado</span>
-
-                                    <span th:if="${despesa.status.name() == 'CANCELADA'}" class="badge bg-secondary">Cancelada</span>
+                                    <span th:if="${despesa.status.name() == 'PENDENTE'}" class="badge bg-danger">Pendente</span>
                                 </td>
                                 <td class="text-nowrap">
 
                                     <a th:if="${despesa.status.name() == 'PENDENTE'}"
                                        th:href="@{/despesas/pagar/{id}(id=${despesa.id})}"
                                        class="btn btn-sm btn-success"
-                                       title="Confirmar Pagamento"
-                                       onclick="return confirm('Confirmar o pagamento desta despesa? O dinheiro sairá do caixa.');">
+                                       title="Confirmar Pagamento">
                                         <i class="fas fa-check"></i>
                                     </a>
 
-                                    <button th:if="${despesa.status.name() == 'PAGO'}"
-                                            type="button"
-                                            class="btn btn-sm btn-secondary"
-                                            title="Despesa já paga"
-                                            disabled
-                                            style="cursor: not-allowed;">
+                                    <button th:if="${despesa.status.name() == 'PAGO'}" type="button" class="btn btn-sm btn-secondary" disabled>
                                         <i class="fas fa-check"></i>
-                                    </button>
-
-                                    <button type="button" class="btn btn-sm btn-primary btn-view-detalhes" title="Visualizar Detalhes"
-                                            data-toggle="modal"
-                                            data-target="#modal-visualizar-despesa"
-                                            th:data-descricao="${despesa.descricao}"
-                                            th:data-categoria="${despesa.categoria}"
-                                            th:data-observacao="${despesa.observacao}"
-                                            th:data-valor="${despesa.valor}"
-                                            th:data-vencimento="${despesa.dataVencimento}"
-                                            th:data-fornecedor-nome="${despesa.fornecedor != null ? despesa.fornecedor.nomeEmpresa : 'Despesa Avulsa'}">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-
-                                    <button type="button" class="btn btn-sm btn-info" title="Editar"
-                                            data-toggle="modal"
-                                            data-target="#modal-editar-despesa"
-                                            th:data-id="${despesa.id}"
-                                            th:data-descricao="${despesa.descricao}"
-                                            th:data-categoria="${despesa.categoria}"
-                                            th:data-observacao="${despesa.observacao}"
-                                            th:data-valor="${despesa.valor}"
-                                            th:data-vencimento="${despesa.dataVencimento}"
-                                            th:data-fornecedor-id="${despesa.fornecedor != null ? despesa.fornecedor.id : ''}">
-                                        <i class="fas fa-pen"></i>
                                     </button>
 
                                     <a th:href="@{/despesas/excluir/{id}(id=${despesa.id})}"
                                        class="btn btn-sm btn-danger"
                                        title="Excluir"
-                                       onclick="return confirm('Tem certeza? Isso apaga o registro de despesa para sempre.');">
+                                       onclick="return confirm('Tem certeza que deseja excluir?');">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 </td>
@@ -147,280 +113,147 @@
     <footer th:replace="~{fragments/geral :: footer}"></footer>
 </div>
 
+<!-- ================= MODAL NOVA CATEGORIA ================= -->
+<div class="modal fade" id="modal-nova-categoria" style="z-index: 1060;"> <!-- z-index para ficar por cima do outro modal -->
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form th:action="@{/categorias/salvar}" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="fas fa-tags mr-2"></i>Nova Categoria</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome da Categoria</label>
+                        <input type="text" name="descricao" class="form-control" placeholder="Ex: Segurança Extra" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Classificação</label>
+                        <select name="tipo" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option th:each="tipo : ${tiposCategoria}" th:value="${tipo}" th:text="${tipo}"></option>
+                        </select>
+                        <small class="form-text text-muted">Provisões saem da caixinha (eventos). Variáveis saem do lucro (fixos).</small>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between p-2">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-dark">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- ================= MODAL NOVA DESPESA ================= -->
 <div class="modal fade" id="modal-nova-despesa">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form th:action="@{/despesas/salvar}" method="POST">
-                <div class="modal-header bg-danger text-white">
-                    <h4 class="modal-title"><i class="fas fa-file-invoice-dollar mr-2"></i>Lançar Nova Despesa</h4>
+                <div class="modal-header bg-dark text-white">
+                    <h4 class="modal-title"><i class="fas fa-file-invoice-dollar mr-2"></i>Lançar Saída</h4>
                     <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
 
                     <div class="row">
-                        <div class="col-md-7">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label>Fornecedor (Opcional)</label>
+                                <label>Lançamento</label>
+                                <input type="date" name="dataLancamento" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Documento</label>
+                                <input type="text" name="numeroDocumento" class="form-control" placeholder="Opcional">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Descrição</label>
+                                <input type="text" name="descricao" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Favorecido / Fornecedor</label>
                                 <select name="fornecedorId" class="form-control select2" style="width: 100%;">
                                     <option value="">Nenhum (Despesa Avulsa)</option>
                                     <option th:each="f : ${fornecedores}" th:value="${f.id}" th:text="${f.nomeEmpresa}"></option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label>Categoria</label>
-                                <select name="categoria" class="form-control" required>
+                                <label>Forma de Pagamento</label>
+                                <select name="formaPagamento" class="form-control" required>
                                     <option value="">Selecione...</option>
-                                    <option value="Infraestrutura">Infraestrutura</option>
-                                    <option value="Impostos">Impostos e Taxas</option>
-                                    <option value="EquipeFixa">Folha de Pagamento</option>
-                                    <option value="Freelance">Serviços Freelance</option>
-                                    <option value="Alimentação">Alimentação</option>
-                                    <option value="Marketing">Marketing / Tráfego</option>
-                                    <option value="Pessoal">Pessoal</option>
-                                    <option value="Outros">Outros</option>
+                                    <option th:each="forma : ${formasPagamento}" th:value="${forma}" th:text="${forma}"></option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Descrição do Gasto</label>
-                        <input type="text" name="descricao" class="form-control" placeholder="Ex: Conta de Luz, Almoço Cliente..." required>
                     </div>
 
                     <div class="row bg-light p-3 rounded border mb-3 mx-0">
                         <div class="col-6">
                             <div class="form-group mb-0">
-                                <label class="text-danger">Valor (R$)</label>
-                                <input type="number" step="0.01" name="valor" class="form-control border-danger text-danger font-weight-bold" required>
+                                <label>Categoria</label>
+                                <div class="input-group">
+                                    <!-- Atenção aqui: mudou para categoria.id para o Java entender que é uma relação de tabelas -->
+                                    <select name="categoria.id" class="form-control" required>
+                                        <option value="">Selecione...</option>
+                                        <option th:each="cat : ${categorias}"
+                                                th:value="${cat.id}"
+                                                th:text="${cat.descricao + ' (' + cat.tipo + ')'}"></option>
+                                    </select>
+                                    <div class="input-group-append">
+                                        <!-- Botão de Nova Categoria -->
+                                        <button type="button" class="btn btn-outline-danger" data-toggle="modal" data-target="#modal-nova-categoria" title="Criar Nova Categoria">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-group mb-0">
-                                <label>Vencimento / Data</label>
-                                <input type="date" name="dataVencimento" class="form-control" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-0">
-                        <label>Observações Adicionais</label>
-                        <textarea name="observacao" class="form-control" rows="2" placeholder="Ex: NF nº 12345, chave Pix..."></textarea>
-                    </div>
-
-                </div>
-                <div class="modal-footer justify-content-between bg-light">
-                    <button type="button" class="btn btn-default shadow-sm" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger font-weight-bold shadow-sm"><i class="fas fa-save mr-1"></i> Registrar Despesa</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ================= MODAL VISUALIZAR DESPESA ================= -->
-<div class="modal fade" id="modal-visualizar-despesa">
-    <div class="modal-dialog">
-        <div class="modal-content border-0">
-            <div class="modal-header bg-danger text-white">
-                <h4 class="modal-title"><i class="fas fa-search-dollar mr-2"></i> Detalhes da Despesa</h4>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-12 mb-3">
-                        <label class="text-muted text-uppercase text-sm mb-0">Fornecedor / Favorecido</label>
-                        <h5 id="view-fornecedor" class="font-weight-bold border-bottom pb-2 text-dark"></h5>
-                    </div>
-                    <div class="col-12 mb-3">
-                        <label class="text-muted text-uppercase text-sm mb-0">Descrição</label>
-                        <p id="view-descricao" class="lead mb-0 text-dark"></p>
-                        <span id="view-categoria" class="badge badge-secondary mt-1"></span>
-                    </div>
-                </div>
-
-                <div class="row bg-light p-3 rounded border mb-3 mx-0">
-                    <div class="col-6 border-right">
-                        <label class="text-muted text-uppercase text-sm mb-0">Valor da Despesa</label>
-                        <h4 id="view-valor" class="text-danger font-weight-bold mb-0"></h4>
-                    </div>
-                    <div class="col-6 pl-4">
-                        <label class="text-muted text-uppercase text-sm mb-0">Vencimento</label>
-                        <h5 id="view-vencimento" class="mt-1 text-dark"></h5>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-12">
-                        <label class="text-muted text-uppercase text-sm mb-0">Observações</label>
-                        <div class="p-3 bg-light rounded border text-dark" style="min-height: 80px;">
-                            <span id="view-observacao"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer bg-light d-flex justify-content-end">
-                <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">Fechar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ================= MODAL EDITAR DESPESA ================= -->
-<div class="modal fade" id="modal-editar-despesa">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form th:action="@{/despesas/salvar}" method="POST">
-                <div class="modal-header bg-info text-white">
-                    <h4 class="modal-title"><i class="fas fa-pen mr-2"></i>Editar Despesa</h4>
-                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="edit-id" name="id">
-
-                    <div class="row">
-                        <div class="col-md-7">
-                            <div class="form-group">
-                                <label>Fornecedor (Opcional)</label>
-                                <select id="edit-fornecedorId" name="fornecedorId" class="form-control select2" style="width: 100%;">
-                                    <option value="">Nenhum (Despesa Avulsa)</option>
-                                    <option th:each="f : ${fornecedores}" th:value="${f.id}" th:text="${f.nomeEmpresa}"></option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group">
-                                <label>Categoria</label>
-                                <select id="edit-categoria" name="categoria" class="form-control" required>
-                                    <option value="">Selecione...</option>
-                                    <option value="Infraestrutura">Infraestrutura</option>
-                                    <option value="Impostos">Impostos e Taxas</option>
-                                    <option value="Software">Softwares / SaaS</option>
-                                    <option value="Alimentação">Alimentação</option>
-                                    <option value="Marketing">Marketing / Tráfego</option>
-                                    <option value="Pessoal">Pessoal / Pró-labore</option>
-                                    <option value="Outros">Outros</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Descrição</label>
-                        <input type="text" id="edit-descricao" name="descricao" class="form-control" required>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
                                 <label>Valor (R$)</label>
-                                <input type="number" step="0.01" id="edit-valor" name="valor" class="form-control text-danger font-weight-bold" required>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label>Vencimento</label>
-                                <input type="date" id="edit-vencimento" name="dataVencimento" class="form-control" required>
+                                <input type="number" step="0.01" name="valor" class="form-control font-weight-bold" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group mb-0">
                         <label>Observações</label>
-                        <textarea id="edit-observacao" name="observacao" class="form-control" rows="2"></textarea>
+                        <textarea name="observacao" class="form-control" rows="2"></textarea>
                     </div>
+
                 </div>
                 <div class="modal-footer justify-content-between bg-light">
                     <button type="button" class="btn btn-default shadow-sm" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-info font-weight-bold shadow-sm"><i class="fas fa-save mr-1"></i> Salvar Alterações</button>
-                </div>
+                    <button type="submit" class="btn btn-dark font-weight-bold shadow-sm"><i class="fas fa-save mr-1"></i> Registrar Saída</button>                </div>
             </form>
         </div>
     </div>
 </div>
 
 <div th:replace="~{fragments/geral :: scripts}"></div>
-
 <script th:inline="none">
     $(function () {
-        // Inicializa DataTable ordenando pela data de Vencimento
         $("#tabela-despesas").DataTable({
-            "responsive": true,
-            "lengthChange": false,
-            "autoWidth": false,
-            "language": {
-                "search": "Pesquisar:",
-                "paginate": {"previous": "Anterior", "next": "Próximo"},
-                "emptyTable": "Nenhuma despesa lançada",
-                "info": "Mostrando _START_ até _END_ de _TOTAL_ registros"
-            },
-            "order": [[4, 'asc']], // Ordena pela coluna de Vencimento
-            "columnDefs": [{"orderable": false, "targets": 7}] // Trava a coluna de botões
+            "responsive": true, "lengthChange": false, "autoWidth": false,
+            "order": [[0, 'desc']] // Ordena pela Data do mais novo pro mais antigo
         });
-
         $('.select2').select2({theme: 'bootstrap4', dropdownParent: $('#modal-nova-despesa')});
-        $('#edit-fornecedorId').select2({theme: 'bootstrap4', dropdownParent: $('#modal-editar-despesa')});
-
-        // Limpa o modal de Nova Despesa ao fechar
         $('#modal-nova-despesa').on('hidden.bs.modal', function () {
             $(this).find('form')[0].reset();
             $(this).find('.select2').val('').trigger('change');
         });
-
-        // --- PREENCHER O MODAL VISUALIZAR ---
-        $('#modal-visualizar-despesa').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var modal = $(this);
-
-            var valor = button.data('valor');
-            var vencimento = button.data('vencimento');
-            var observacao = button.data('observacao');
-
-            // Formatação Real BR
-            var valorFormatado = parseFloat(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            var dataFormatada = '-';
-            if (vencimento) {
-                var partes = vencimento.split('-');
-                if (partes.length === 3) dataFormatada = partes[2] + '/' + partes[1] + '/' + partes[0];
-            }
-
-            modal.find('#view-fornecedor').text(button.data('fornecedor-nome'));
-            modal.find('#view-descricao').text(button.data('descricao'));
-            modal.find('#view-categoria').text(button.data('categoria'));
-            modal.find('#view-valor').text(valorFormatado);
-            modal.find('#view-vencimento').text(dataFormatada);
-
-            if (!observacao || observacao.trim() === '') {
-                modal.find('#view-observacao').html('<em class="text-muted">Nenhuma observação extra.</em>');
-            } else {
-                modal.find('#view-observacao').text(observacao);
-            }
-        });
-
-        // --- PREENCHER O MODAL EDITAR ---
-        $('#modal-editar-despesa').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var modal = $(this);
-
-            modal.find('#edit-id').val(button.data('id'));
-            modal.find('#edit-descricao').val(button.data('descricao'));
-            modal.find('#edit-categoria').val(button.data('categoria'));
-            modal.find('#edit-observacao').val(button.data('observacao'));
-            modal.find('#edit-valor').val(button.data('valor'));
-            modal.find('#edit-vencimento').val(button.data('vencimento'));
-
-            var fornecedorId = button.data('fornecedor-id');
-            if(fornecedorId) {
-                modal.find('#edit-fornecedorId').val(fornecedorId).trigger('change');
-            } else {
-                modal.find('#edit-fornecedorId').val('').trigger('change');
-            }
-        });
     });
 </script>
-
 </body>
 </html>

@@ -19,7 +19,7 @@ public class Cliente {
     private Long id;
 
     // ==========================================
-    // 🏢 DADOS DO PARCEIRO (ESTILO SAP)
+    // 🏢 DADOS DO PARCEIRO (Fornecedores, Equipe, Promoters)
     // ==========================================
 
     @Enumerated(EnumType.STRING)
@@ -27,7 +27,7 @@ public class Cliente {
     @Builder.Default
     private TipoParceiro tipoParceiro = TipoParceiro.CLIENTE;
 
-    @NotBlank(message = "Nome da empresa é obrigatório")
+    @NotBlank(message = "Nome da empresa/parceiro é obrigatório")
     @Column(nullable = false)
     private String nomeEmpresa;
 
@@ -42,26 +42,7 @@ public class Cliente {
     @NotBlank(message = "Telefone/WhatsApp é obrigatório")
     private String telefone;
 
-    private String cnpj;
-
-    // ==========================================
-    // 🤖 CONFIGURAÇÕES DO ROBÔ DE COBRANÇA
-    // ==========================================
-
-    @Builder.Default
-    private Boolean usarRegrasGlobais = true;
-
-    @Builder.Default
-    private Boolean preventivoAtivo = true;
-
-    @Builder.Default
-    private Boolean vencimentoAtivo = true;
-
-    @Builder.Default
-    private Boolean atrasoAtivo = true;
-
-    @Builder.Default
-    private String tomMensagem = "MEDIO";
+    private String cnpj; // Pode ser CPF também na prática
 
     @Column(updatable = false)
     private LocalDateTime dataCadastro;

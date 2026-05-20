@@ -2,202 +2,46 @@ package com.titu.core.controller;
 
 import com.titu.core.model.Cliente;
 import com.titu.core.model.Despesa;
-import com.titu.core.model.Titulo;
-import com.titu.core.repository.TituloRepository;
-import com.titu.core.service.ClienteService;
-import com.titu.core.service.EmailService;
-import com.titu.core.service.TituloService;
+import com.titu.core.repository.EventoRepository;
+import com.titu.core.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Controller; // <--- Note que é @Controller, não @RestController
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
 public class WebController {
 
-    //ClienteClontroller retorna JSon pro postman, esse WebController retorna HTML pro navegador
-
     private final ClienteService clienteService;
-    private final TituloService tituloService;
-    private final EmailService emailService;
-    private final TituloRepository  tituloRepository;
-    private final com.titu.core.repository.LogAcaoRepository logAcaoRepository;
-    private final com.titu.core.service.ConfiguracaoService configuracaoService;
-    private final com.titu.core.repository.ClienteRepository clienteRepository;
-    private final com.titu.core.repository.LogDisparoRepository logDisparoRepository;
-    private final com.titu.core.service.AgendamentoService agendamentoService;
-    private final com.titu.core.service.DespesaService despesaService;
+    private final DespesaService despesaService;
+    private final CategoriaService categoriaService;
+    private final EventoService eventoService; // <-- ADICIONE AQUI
+    private final EventoRepository eventoRepository;
+    private final TipoEventoService tipoEventoService;
+    private final FechamentoService fechamentoService;
 
     @ModelAttribute("currentUri")
     public String getCurrentUri(HttpServletRequest request) {
         return request.getRequestURI();
     }
 
+    // =========================================================================
+    // ROTAS PRINCIPAIS & DASHBOARD
+    // =========================================================================
+
+    // Guarda de Trânsito! Se entrar no site puro, joga pro Dashboard
     @GetMapping("/")
-    public String home(@RequestParam(required = false) String mesBusca, Model model) {
-        // 1. Se o usuário não escolheu nenhum mês, pega o mês atual
-        if (mesBusca == null || mesBusca.isEmpty()) {
-            mesBusca = java.time.YearMonth.now().toString();
-        }
-
-        // 2. Manda para o HTML qual mês está selecionado para o calendário preencher certo
-        model.addAttribute("mesSelecionado", mesBusca);
-
-        // 3. Calcula o início e o fim do mês (Já deixando engatilhado para filtrar o banco)
-        java.time.YearMonth anoMes = java.time.YearMonth.parse(mesBusca);
-        java.time.LocalDate inicioDoMes = anoMes.atDay(1);
-        java.time.LocalDate fimDoMes = anoMes.atEndOfMonth();
-
-        // -------------------------------------------------------------------------
-
-        java.math.BigDecimal pendenteMes = tituloRepository.somarTotalPendentePorPeriodo(inicioDoMes, fimDoMes);
-        java.math.BigDecimal pagoMes = tituloRepository.somarTotalPagoPorPeriodo(inicioDoMes, fimDoMes);
-        Long vencidosMes = tituloRepository.contarTodosVencidosAte(fimDoMes); // A FUNÇÃO NOVA AQUI!
-
-        // Se o banco não achar nada no mês, ele devolve nulo para evitar dar erro na tela
-        model.addAttribute("totalPendente", pendenteMes != null ? pendenteMes : 0.0);
-        model.addAttribute("totalPago", pagoMes != null ? pagoMes : 0.0);
-        model.addAttribute("qtdVencidos", vencidosMes != null ? vencidosMes : 0L);
-
-
-        model.addAttribute("qtdClientes", clienteService.listarTodos().size());
-
-        model.addAttribute("ultimosDisparos", logDisparoRepository.findTop5ByOrderByDataHoraEnvioDesc());
-
-        return "home";
+    public String redirecionarRaiz() {
+        return "redirect:/dashboard";
     }
 
-
-    @GetMapping("/clientes")
-    public String paginaClientes(Model model) {
-        model.addAttribute("clientes", clienteService.listarTodos());
-        // Envia um objeto vazio para o formulário poder validar os campos
-        model.addAttribute("cliente", new Cliente());
-        return "clientes";
-    }
-
-    // 2. ROTA PARA SALVAR (Com Validação Inteligente)
-    @PostMapping("/clientes/salvar")
-    public String salvarCliente(@ModelAttribute Cliente cliente, RedirectAttributes redirectAttributes) {
-
-        try {
-            // Tenta salvar (tanto faz se é novo ou edição)
-            clienteService.salvar(cliente);
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Cliente salvo com sucesso!");
-
-        } catch (IllegalArgumentException e) {
-            // Se o Service reclamar (ex: E-mail já existe), mostra erro vermelho
-            redirectAttributes.addFlashAttribute("mensagemErro", "Atenção: " + e.getMessage());
-
-        } catch (Exception e) {
-            // Se der qualquer outro erro maluco no banco
-            redirectAttributes.addFlashAttribute("mensagemErro", "Erro inesperado ao salvar cliente.");
-        }
-
-        // Redireciona limpando a URL e fechando os modais
-        return "redirect:/clientes";
-    }
-
-    @GetMapping("/titulos")
-    @Transactional
-    public String paginaTitulos(@RequestParam(required = false) String filtro,
-                                @RequestParam(required = false) String mes, // <-- AGORA ELE PEGA O MÊS!
-                                Model model) {
-
-        // Manda o filtro e o mês pro motor inteligente
-        List<Titulo> lista = tituloService.listarComFiltro(filtro, mes);
-
-        model.addAttribute("titulos", lista);
-        model.addAttribute("clientes", clienteService.listarSomenteClientes());
-        model.addAttribute("filtroAtivo", filtro);
-        model.addAttribute("mesSelecionado", mes); // <-- Manda de volta pro HTML pra não perder
-
-        return "titulos";
-    }
-
-    @PostMapping("/titulos/salvar")
-    public String salvarTitulo(Titulo titulo,
-                               @RequestParam Long clienteId,
-                               @RequestParam(required = false, defaultValue = "UNICA") String tipoCobranca,
-                               @RequestParam(required = false) java.math.BigDecimal valorInformado, // <-- MUDOU AQUI
-                               @RequestParam(required = false, defaultValue = "1") Integer quantidade) {
-
-        tituloService.salvar(titulo, clienteId, tipoCobranca, valorInformado, quantidade);
-        return "redirect:/titulos";
-    }
-
-// --- ROTAS DE EXCLUSÃO ---
-
-    @GetMapping("/clientes/excluir/{id}")
-    public String excluirCliente(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            clienteService.excluir(id);
-            // Mensagem de sucesso
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Cliente excluído com sucesso!");
-        } catch (DataIntegrityViolationException e) {
-            // Se der erro de chave estrangeira, tem dívidas
-            redirectAttributes.addFlashAttribute("mensagemErro", "Não é possível excluir: Este cliente possui cobranças vinculadas! Apague as cobranças primeiro.");
-        } catch (Exception e) {
-            // Qualquer outro erro genérico
-            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao excluir cliente: " + e.getMessage());
-        }
-
-        return "redirect:/clientes";
-    }
-
-    @GetMapping("/titulos/excluir/{id}")
-    public String excluirTitulo(@PathVariable Long id) {
-        tituloService.excluir(id);
-        return "redirect:/titulos";
-    }
-
-    // Rota de Teste
-    @GetMapping("/teste-email")
-    public String testeEmail() {
-        emailService.enviarEmailSimples(
-                "teste@cliente.com",
-                "Olá do Titu!",
-                "Se você recebeu isso, o Mailtrap está funcionando!"
-        );
-        return "redirect:/";
-    }
-
-    @GetMapping("/titulos/pagar/{id}")
-    public String darBaixaTitulo(@PathVariable Long id, HttpServletRequest request, RedirectAttributes redirectAttributes) {
-
-        // 1. Dá a baixa no banco e prepara a mensagem
-        tituloService.darBaixa(id);
-        redirectAttributes.addFlashAttribute("mensagemSucesso", "Pagamento confirmado com sucesso!");
-
-        // 2. Pegar a URL exata de onde o clique veio, com os filtros
-        String urlAnterior = request.getHeader("Referer");
-
-        // 3. Redirecionar de volta. Se por acaso a URL sumir, ele volta pro padrão.
-        if (urlAnterior != null) {
-            return "redirect:" + urlAnterior;
-        } else {
-            return "redirect:/titulos";
-        }
-    }
-
-    @GetMapping("/titulos/editar/{id}")
-    public String editarTitulo(@PathVariable Long id, Model model) {
-        Titulo titulo = tituloService.buscarPorId(id);
-
-        model.addAttribute("titulo", titulo);
-        model.addAttribute("clientes", clienteService.listarSomenteClientes());
-
-        return "titulo-editar"; //
+    @GetMapping("/login")
+    public String login() {
+        return "login";
     }
 
     @GetMapping("/suporte")
@@ -205,156 +49,81 @@ public class WebController {
         return "suporte";
     }
 
+    // =========================================================================
+    // ROTAS DE PARCEIROS (Fornecedores / Promoters / etc)
+    // =========================================================================
+
+    @GetMapping("/clientes")
+    public String paginaClientes(Model model) {
+        model.addAttribute("clientes", clienteService.listarTodos());
+        model.addAttribute("cliente", new Cliente());
+        return "clientes";
+    }
+
+    @PostMapping("/clientes/salvar")
+    public String salvarCliente(@ModelAttribute Cliente cliente, RedirectAttributes redirectAttributes) {
+        try {
+            clienteService.salvar(cliente);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Parceiro salvo com sucesso!");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Atenção: " + e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro inesperado ao salvar parceiro.");
+        }
+        return "redirect:/clientes";
+    }
+
+    @GetMapping("/clientes/excluir/{id}")
+    public String excluirCliente(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            clienteService.excluir(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Parceiro excluído com sucesso!");
+        } catch (DataIntegrityViolationException e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Não é possível excluir: Este parceiro possui lançamentos vinculados!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao excluir parceiro: " + e.getMessage());
+        }
+        return "redirect:/clientes";
+    }
 
     @GetMapping("/clientes/{id}/detalhes")
     public String detalhesCliente(@PathVariable Long id, Model model) {
-        // Busca o cliente para mostrar os dados dele no topo
         model.addAttribute("cliente", clienteService.buscarPorId(id));
-
-        // Busca as dívidas ordenadas (Pendente primeiro)
-        model.addAttribute("titulos", tituloService.listarPorCliente(id));
-
-        // Busca o histórico da Caixa Preta do Titu-Bô
-        model.addAttribute("historicoEmails", logDisparoRepository.findByClienteIdOrderByDataHoraEnvioDesc(id));
-
+        // No futuro, podemos listar os Eventos que esse parceiro trabalhou aqui
         return "cliente-detalhes";
     }
 
-    @GetMapping("/configuracoes")
-    public String paginaConfiguracoes(Model model) {
-        // Pega a configuração atual. Se não existir, ele cria a DEFAULT na hora
-        com.titu.core.model.ConfiguracaoRobo configRobo = configuracaoService.obterConfiguracaoAtual();
-
-        // Manda pro HTML
-        model.addAttribute("configRobo", configRobo);
-
-        return "configuracoes";
-    }
-
-    @GetMapping("/login")
-    public String login() {
-        return "login"; // Vai chamar o nosso login.html
-    }
-
-    @GetMapping("/titulos/estornar/{id}")
-    public String estornarPagamento(@PathVariable Long id) {
-        // 1. Busca o título pelo ID
-        com.titu.core.model.Titulo titulo = tituloRepository.findById(id).orElse(null);
-
-        if (titulo != null) {
-            // 2. Volta o status para PENDENTE
-            titulo.setStatus(com.titu.core.model.StatusTitulo.PENDENTE);
-
-            // 3. Salva a alteração
-            tituloRepository.save(titulo);
-        }
-
-        // 4. Volta para a tela de títulos automaticamente
-        return "redirect:/titulos";
-    }
-
-    // --- 2. ROTA PARA ATUALIZAR O PERFIL ---
-    @PostMapping("/perfil/atualizar")
-    public String atualizarPerfil(String nome, String senha, RedirectAttributes redirectAttributes) {
-
-
-        redirectAttributes.addFlashAttribute("mensagemSucesso", "Perfil atualizado com sucesso!");
-        return "redirect:/configuracoes";
-    }
-    // --- 3. ROTA PARA SALVAR A EMPRESA ---
-    @PostMapping("/configuracoes/empresa/salvar")
-    public String salvarEmpresa(String nomeFantasia, String cnpj, String telefone, String email, RedirectAttributes redirectAttributes) {
-
-        redirectAttributes.addFlashAttribute("mensagemSucesso", "Dados da empresa atualizados com sucesso!");
-        redirectAttributes.addFlashAttribute("abaAtiva", "empresa");
-        return "redirect:/configuracoes";
-    }
-
-    @PostMapping("/configuracoes/automacoes/salvar")
-    public String salvarAutomacoes(com.titu.core.model.ConfiguracaoRobo formRobo, RedirectAttributes redirectAttributes) {
-
-        com.titu.core.model.ConfiguracaoRobo configAtual = configuracaoService.obterConfiguracaoAtual();
-        formRobo.setId(configAtual.getId());
-
-        // Salva as novas escolhas do usuário
-        configuracaoService.salvarConfiguracao(formRobo);
-
-        redirectAttributes.addFlashAttribute("mensagemSucesso", "As regras do Robô foram atualizadas!");
-        redirectAttributes.addFlashAttribute("abaAtiva", "automacoes"); // Fofoca pra manter na aba certa
-
-        return "redirect:/configuracoes";
-    }
-
-    // ROTA DO "BOTÃO DA FÚRIA" (Cobrar atrasados)
-    @GetMapping("/disparar-cobrancas")
-    public String dispararCobrancasAtrasadas(RedirectAttributes redirectAttributes) {
-        try {
-            // Chama o serviço que faz a varredura
-            tituloService.cobrarAtrasadosEmLote();
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Cobranças enviadas com sucesso para todos os devedores!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao disparar e-mails de cobrança.");
-        }
-        return "redirect:/"; // Volta pra página inicial (home.html)
-    }
-
-    @GetMapping("/agendamentos")
-    public String paginaAgendamentos(Model model) {
-        // Manda os clientes pro select do modal
-        model.addAttribute("clientes", clienteService.listarTodos());
-        // Manda a lista real do Banco de Dados para a tabela!
-        model.addAttribute("agendamentos", agendamentoService.listarTodos());
-        return "agendamentos";
-    }
-
-    @PostMapping("/agendamentos/salvar")
-    public String salvarAgendamento(
-            @RequestParam Long clienteId,
-            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime dataHora,
-            @RequestParam String fusoHorario,
-            @RequestParam com.titu.core.model.TipoRecorrencia repeticao,
-            @RequestParam com.titu.core.model.TomMensagem tomMensagem,
-            @RequestParam String assunto,
-            @RequestParam String texto,
-            RedirectAttributes redirectAttributes) {
-
-        try {
-            // 1. Acha o cliente no banco
-            com.titu.core.model.Cliente cliente = clienteService.buscarPorId(clienteId);
-
-            // 2. Monta o pacote pro Robô
-            com.titu.core.model.AgendamentoEmail agendamento = new com.titu.core.model.AgendamentoEmail();
-            agendamento.setCliente(cliente);
-            agendamento.setDataHoraProgramada(dataHora);
-            agendamento.setFusoHorarioDestino(fusoHorario);
-            agendamento.setRepeticao(repeticao);
-            agendamento.setTomMensagem(tomMensagem);
-            agendamento.setAssunto(assunto);
-            agendamento.setTexto(texto);
-
-            // 3. Entrega na mão do Service pra ele botar na fila
-            agendamentoService.agendarNovo(agendamento);
-
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Follow-up agendado com sucesso!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao agendar e-mail: " + e.getMessage());
-        }
-
-        return "redirect:/agendamentos";
-    }
-// =========================================================================
-    // ROTAS DE DESPESAS (CONTAS A PAGAR)
+    // =========================================================================
+    // ROTAS DE DESPESAS (ABA 3 DA PLANILHA)
     // =========================================================================
 
     @GetMapping("/despesas")
     public String paginaDespesas(Model model) {
-        // Manda a lista de despesas pra tabela
         model.addAttribute("despesas", despesaService.listarTodas());
-
-        // Manda SÓ os Fornecedores para o <select> do Modal
         model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
 
+        // AGORA BUSCA DO BANCO DE DADOS!
+        model.addAttribute("categorias", categoriaService.listarTodas());
+        model.addAttribute("formasPagamento", com.titu.core.model.FormaPagamento.values());
+
+        // Mandando os Tipos (Provisão/Variável) para o modal de NOVA Categoria
+        model.addAttribute("tiposCategoria", com.titu.core.model.TipoCategoria.values());
+
         return "despesas";
+    }
+
+    @PostMapping("/categorias/salvar")
+    public String salvarCategoria(com.titu.core.model.Categoria categoria, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        try {
+            categoriaService.salvar(categoria);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Nova categoria adicionada com sucesso!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao criar categoria: " + e.getMessage());
+        }
+
+        // Volta pra tela de despesas (ou de onde ele estiver chamando)
+        String urlAnterior = request.getHeader("Referer");
+        return (urlAnterior != null) ? "redirect:" + urlAnterior : "redirect:/despesas";
     }
 
     @PostMapping("/despesas/salvar")
@@ -378,7 +147,6 @@ public class WebController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao processar pagamento.");
         }
-
         String urlAnterior = request.getHeader("Referer");
         return (urlAnterior != null) ? "redirect:" + urlAnterior : "redirect:/despesas";
     }
@@ -392,6 +160,164 @@ public class WebController {
             redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao apagar despesa.");
         }
         return "redirect:/despesas";
+    }
+
+    // =========================================================================
+    // ROTAS DE EVENTOS (ABA 4 - DIÁRIO)
+    // =========================================================================
+
+    @GetMapping("/eventos")
+    public String paginaDiario(@RequestParam(required = false) Integer mes,
+                               @RequestParam(required = false) Integer ano,
+                               Model model) {
+
+        // Se vier vazio, pega a data de hoje
+        if (mes == null || ano == null) {
+            java.time.LocalDate hoje = java.time.LocalDate.now();
+            mes = hoje.getMonthValue();
+            ano = hoje.getYear();
+        }
+
+        // Busca só os eventos do mês filtrado
+        model.addAttribute("eventos", eventoService.listarPorMesEAno(ano, mes));
+        // Dentro do metodo que abre a página do Diário (ex: /diario)
+        model.addAttribute("mesTrancado", fechamentoService.isMesTrancado(mes, ano));
+        model.addAttribute("tiposEvento", tipoEventoService.listarTodos());
+        // Devolve pro HTML saber qual mês/ano deixar selecionado no select
+        model.addAttribute("mesSelecionado", mes);
+        model.addAttribute("anoSelecionado", ano);
+
+        return "eventos";
+    }
+
+    @PostMapping("/eventos/fechar")
+    public String fecharCompetenciaDoDiario(@RequestParam Integer mes,
+                                            @RequestParam Integer ano,
+                                            RedirectAttributes redirectAttributes) {
+        try {
+            fechamentoService.fecharCompetencia(ano, mes, "Admin");
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Mês finalizado com sucesso! Lançamentos trancados.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao finalizar o mês.");
+        }
+        return "redirect:/eventos?mes=" + mes + "&ano=" + ano;
+    }
+
+    @PostMapping("/eventos/salvar")
+    public String salvarEvento(com.titu.core.model.Evento evento, RedirectAttributes redirectAttributes) {
+        try {
+            eventoService.salvar(evento);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Evento registrado com sucesso!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao salvar evento: " + e.getMessage());
+        }
+        return "redirect:/eventos";
+    }
+
+    @GetMapping("/eventos/excluir/{id}")
+    public String excluirEvento(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            eventoService.excluir(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Evento apagado!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao apagar evento.");
+        }
+        return "redirect:/eventos";
+    }
+
+    @PostMapping("/eventos/gerar-mes")
+    public String gerarMesCompleto(@RequestParam int ano, @RequestParam int mes, RedirectAttributes redirectAttributes) {
+        try {
+            eventoService.gerarMesCompleto(ano, mes);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Agenda do mês gerada com sucesso! Agora é só preencher os valores.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao gerar mês: " + e.getMessage());
+        }
+        return "redirect:/eventos";
+    }
+
+    @PostMapping("/eventos/atualizar-campo")
+    @ResponseBody
+    public java.util.Map<String, Object> atualizarCampoAjax(@RequestParam Long id, @RequestParam String campo, @RequestParam String valor) {
+        com.titu.core.model.Evento evento = eventoRepository.findById(id).orElseThrow();
+
+        if (campo.equals("tipoEvento")) {
+            // Busca o objeto da tabela nova pelo ID que veio do JavaScript
+            com.titu.core.model.TipoEvento tipo = tipoEventoService.listarTodos().stream()
+                    .filter(t -> t.getId().toString().equals(valor))
+                    .findFirst().orElseThrow();
+            evento.setTipoEvento(tipo);
+        } else {
+            // Converte o texto do JS para dinheiro no Java
+            java.math.BigDecimal num = new java.math.BigDecimal(valor.isEmpty() ? "0" : valor.replace(",", "."));
+            switch(campo) {
+                case "receitaBar": evento.setReceitaBar(num); break;
+                case "custoProblemas": evento.setCustoProblemas(num); break;
+                case "custoDiarias": evento.setCustoDiarias(num); break;
+                case "custoPromoters": evento.setCustoPromoters(num); break;
+                case "custoDjPagode": evento.setCustoDjPagode(num); break;
+                case "custoSeguranca": evento.setCustoSeguranca(num); break;
+                case "custoSom": evento.setCustoSom(num); break;
+                case "provisaoCustoBar": evento.setProvisaoCustoBar(num); break;
+                case "provisaoSocios": evento.setProvisaoSocios(num); break;
+                case "provisaoDecoracao": evento.setProvisaoDecoracao(num); break;
+                case "provisaoTaxa": evento.setProvisaoTaxa(num); break;
+            }
+        }
+
+        eventoService.salvar(evento); // Salva as mudanças no banco
+
+        // Devolve os totais calculados na hora para o navegador!
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("totalCustos", evento.getTotalCustos());
+        response.put("lucroDoDia", evento.getLucroDoDia());
+        response.put("margem", evento.getMargem());
+        return response;
+    }
+
+    @PostMapping("/eventos/apagar-mes")
+    public String apagarMesCompleto(@RequestParam int ano, @RequestParam int mes, RedirectAttributes redirectAttributes) {
+        try {
+            eventoService.apagarMesCompleto(ano, mes);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Todos os eventos do mês " + mes + "/" + ano + " foram apagados com sucesso!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao apagar o mês.");
+        }
+        return "redirect:/eventos";
+    }
+
+    @PostMapping("/tipos-evento/salvar")
+    public String salvarTipoEvento(com.titu.core.model.TipoEvento tipoEvento, RedirectAttributes redirectAttributes) {
+        try {
+            tipoEventoService.salvar(tipoEvento);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Novo tipo de evento cadastrado com sucesso!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", e.getMessage());
+        }
+        return "redirect:/eventos";
+    }
+
+    // Injete o serviço lá no topo da classe
+    private final com.titu.core.service.DashboardService dashboardService;
+
+    // --- ROTA DO DASHBOARD ---
+    @GetMapping("/dashboard")
+    public String paginaDashboard(@RequestParam(required = false) Integer mes,
+                                  @RequestParam(required = false) Integer ano,
+                                  Model model) {
+
+        // Se ele clicar no menu lateral sem filtro, joga pro mês/ano atual
+        if (mes == null || ano == null) {
+            java.time.LocalDate hoje = java.time.LocalDate.now();
+            mes = hoje.getMonthValue();
+            ano = hoje.getYear();
+        }
+
+        model.addAttribute("dadosDashboard", dashboardService.processarDashboardDoMes(ano, mes));
+        model.addAttribute("mesSelecionado", mes);
+        model.addAttribute("anoSelecionado", ano);
+
+        return "dashboard";
     }
 
 

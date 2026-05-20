@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/geral :: head}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed bg-light">
+<script>
+    if (localStorage.getItem('menuFechado') === 'true') {
+        document.body.classList.add('sidebar-collapse');
+    }
+</script>
+
+<style>
+    /* Estilos Premium para o Dashboard */
+    .small-box { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s; }
+    .small-box:hover { transform: translateY(-5px); }
+    .small-box .icon { opacity: 0.3; }
+    .text-money { font-family: 'Courier New', Courier, monospace; letter-spacing: -0.5px; }
+    .card-modern { border-radius: 12px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .card-modern .card-header { border-bottom: 1px solid rgba(0,0,0,0.05); background-color: #fff; border-radius: 12px 12px 0 0; }
+    .table-ranking td { vertical-align: middle; border-top: 1px dashed #e9ecef; }
+</style>
+
+<div class="wrapper">
+    <nav th:replace="~{fragments/geral :: navbar}"></nav>
+    <aside th:replace="~{fragments/geral :: sidebar}"></aside>
+
+    <div class="content-wrapper px-3 py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">Dashboard de Vendas</h2>
+                <p class="text-muted text-sm mb-0">Visão consolidada do caixa da sua empresa.</p>
+            </div>
+
+            <form action="/dashboard" method="GET" class="form-inline bg-white p-2 rounded-pill shadow-sm border">
+                <i class="fas fa-calendar-alt mx-3 text-primary"></i>
+                <select name="mes" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" onchange="this.form.submit()">                    <option value="1" th:selected="${mesSelecionado == 1}">Janeiro</option>
+                    <option value="2" th:selected="${mesSelecionado == 2}">Fevereiro</option>
+                    <option value="3" th:selected="${mesSelecionado == 3}">Março</option>
+                    <option value="4" th:selected="${mesSelecionado == 4}">Abril</option>
+                    <option value="5" th:selected="${mesSelecionado == 5}">Maio</option>
+                    <option value="6" th:selected="${mesSelecionado == 6}">Junho</option>
+                    <option value="7" th:selected="${mesSelecionado == 7}">Julho</option>
+                    <option value="8" th:selected="${mesSelecionado == 8}">Agosto</option>
+                    <option value="9" th:selected="${mesSelecionado == 9}">Setembro</option>
+                    <option value="10" th:selected="${mesSelecionado == 10}">Outubro</option>
+                    <option value="11" th:selected="${mesSelecionado == 11}">Novembro</option>
+                    <option value="12" th:selected="${mesSelecionado == 12}">Dezembro</option>
+                </select>
+                <span class="mx-2 text-muted">/</span>
+                <input type="number" name="ano" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" style="width: 70px;" th:value="${anoSelecionado}" onchange="this.form.submit()">            </form>
+        </div>
+
+        <section class="content p-0">
+
+            <div class="row">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner p-4">
+                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.faturamentoBrutoEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
+                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Faturamento Bruto</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-chart-line"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box" style="background-color: #fd7e14; color: white;">
+                        <div class="inner p-4">
+                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.custosDiretosEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
+                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Custos (Eventos)</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-bolt"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-danger">
+                        <div class="inner p-4">
+                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.totalDespesasFixas, 1, 'POINT', 2, 'COMMA')}"></h3>
+                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Despesas Fixas</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box" th:classappend="${dadosDashboard.lucroLiquidoReal.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-primary' : 'bg-dark'">
+                        <div class="inner p-4">
+                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.lucroLiquidoReal, 1, 'POINT', 2, 'COMMA')}"></h3>
+                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Lucro Líquido</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-piggy-bank"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-2">
+
+                <div class="col-lg-5">
+                    <div class="card card-modern h-100">
+                        <div class="card-header pt-4 pb-2">
+                            <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-chart-pie mr-2 text-primary"></i>Representatividade do Lucro</h3>
+                        </div>
+                        <div class="card-body d-flex justify-content-center align-items-center relative" style="min-height: 300px;">
+                            <div th:if="${#lists.isEmpty(dadosDashboard.rankingFestas)}" class="text-center text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                                <p>Sem dados financeiros para gerar gráficos neste mês.</p>
+                            </div>
+                            <canvas id="meuGrafico" th:if="${!#lists.isEmpty(dadosDashboard.rankingFestas)}" style="max-height: 280px;"></canvas>
+                            <ul id="dadosEscondidosGrafico" style="display:none;">
+                                <li th:each="festa : ${dadosDashboard.rankingFestas}"
+                                    th:attr="data-nome=${festa.nomeFesta}, data-lucro=${festa.lucroTotal}, data-cor=${festa.cor}">
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card card-modern h-100">
+                        <div class="card-header pt-4 pb-2">
+                            <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-trophy mr-2 text-warning"></i>Top Performance por Evento</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-ranking mb-0">
+                                    <thead class="bg-light text-muted text-xs text-uppercase">
+                                    <tr>
+                                        <th class="pl-4 py-3">Tipo de Festa</th>
+                                        <th class="text-center py-3">Realizadas</th>
+                                        <th class="text-right py-3">Faturamento</th>
+                                        <th class="text-right pr-4 py-3">Lucro Líquido</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="festa, iterStat : ${dadosDashboard.rankingFestas}">
+                                        <td class="pl-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <span th:if="${iterStat.index == 0}" class="badge badge-warning mr-3 py-1 px-2"><i class="fas fa-medal"></i> 1º</span>
+                                                <span th:if="${iterStat.index == 1}" class="badge badge-secondary mr-3 py-1 px-2"><i class="fas fa-medal"></i> 2º</span>
+                                                <span th:if="${iterStat.index == 2}" class="badge badge-info mr-3 py-1 px-2"><i class="fas fa-medal"></i> 3º</span>
+                                                <span th:if="${iterStat.index > 2}" class="badge bg-light text-dark mr-3 py-1 px-2" th:text="${iterStat.index + 1} + 'º'"></span>
+
+                                                <i class="fas fa-circle text-xs mr-2" th:style="'color: ' + ${festa.cor}"></i>
+                                                <span class="font-weight-bold text-dark" th:text="${festa.nomeFesta}"></span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center py-3">
+                                            <span class="badge badge-light border text-dark px-2 py-1 text-sm" th:text="${festa.quantidadeRealizada} + ' dias'"></span>
+                                        </td>
+                                        <td class="text-right text-success text-money py-3" th:text="'R$ ' + ${#numbers.formatDecimal(festa.receitaTotal, 1, 'POINT', 2, 'COMMA')}"></td>
+                                        <td class="text-right text-primary font-weight-bold text-money pr-4 py-3" th:text="'R$ ' + ${#numbers.formatDecimal(festa.lucroTotal, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(dadosDashboard.rankingFestas)}">
+                                        <td colspan="4" class="text-center text-muted py-5">Nenhum evento com movimentação financeira encontrado.</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+    <footer th:replace="~{fragments/geral :: footer}"></footer>
+</div>
+
+<div th:replace="~{fragments/geral :: scripts}"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script th:if="${!#lists.isEmpty(dadosDashboard.rankingFestas)}">
+    $(function () {
+        var nomesFestas = [];
+        var lucrosFestas = [];
+        var coresFestas = [];
+
+        // O JS varre a nossa lista escondida e puxa os dados sem erro de sintaxe!
+        // O JS varre a nossa lista escondida e puxa os dados sem erro de sintaxe!
+        $('#dadosEscondidosGrafico li').each(function() {
+            let lucro = parseFloat($(this).data('lucro'));
+
+            // O FILTRO DE NEGÓCIO: Só ganha fatia no gráfico quem deu lucro positivo!
+            if (lucro > 0) {
+                nomesFestas.push($(this).data('nome'));
+                lucrosFestas.push(lucro);
+                coresFestas.push($(this).data('cor'));
+            }
+        });
+
+        // Se tiver festa, a gente aciona o Chart.js
+        if (nomesFestas.length > 0) {
+            var ctx = document.getElementById('meuGrafico').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: nomesFestas,
+                    datasets: [{
+                        data: lucrosFestas,
+                        backgroundColor: coresFestas,
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

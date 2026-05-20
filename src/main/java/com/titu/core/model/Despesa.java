@@ -1,43 +1,62 @@
 package com.titu.core.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Data
 @Entity
 @Table(name = "despesas")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Despesa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Coluna: DATA (Na planilha não separa muito vencimento de pagamento,
+    // mas a gente mantém a data de lançamento principal)
     @Column(nullable = false)
-    private String descricao; // Ex: Conta de Luz, iFood, Compra de Estoque
+    private LocalDate dataLancamento;
 
-    // Aqui é a Categoria para o Dashboard ficar bonitão depois!
+    // Coluna: Nº DOCUMENTO (Opcional)
+    private String numeroDocumento;
+
+    // Coluna: DESCRIÇÃO (Para ele saber do que se trata)
     @Column(nullable = false)
-    private String categoria; // Ex: Infraestrutura, Alimentação, Impostos
+    private String descricao;
 
-    // Aqui entra o Fornecedor (O nosso Business Partner)
-    // Deixamos nullable = true para permitir aquela ideia de "Despesa Avulsa" (sem fornecedor cadastrado)
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Coluna: FORNECEDOR / BENEFICIÁRIO
+    @ManyToOne
     @JoinColumn(name = "fornecedor_id")
     private Cliente fornecedor;
 
-    @Column(nullable = false)
-    private java.math.BigDecimal valor;
+    // Coluna: FORMA PGTO
+    @Enumerated(EnumType.STRING)
+    private FormaPagamento formaPagamento;
 
-    @Column(nullable = false)
-    private LocalDate dataVencimento;
+    // Coluna: CATEGORIA (Agora aponta pra tabela de categorias dinâmicas)
+    @ManyToOne
+    @JoinColumn(name = "categoria_id", nullable = false)
+    private Categoria categoria;
 
-    private LocalDate dataPagamento;
+    // Coluna: VALOR (R$)
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal valor;
 
+    // Coluna: STATUS (Pago, Pendente...)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StatusDespesa status = StatusDespesa.PENDENTE;
+    private StatusDespesa status;
 
+    // Coluna: OBSERVAÇÕES
     @Column(columnDefinition = "TEXT")
     private String observacao;
+
+    // Para controle interno de quando a baixa foi dada
+    private LocalDate dataPagamento;
 }
