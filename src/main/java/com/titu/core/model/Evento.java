@@ -32,9 +32,6 @@ public class Evento {
     @Builder.Default
     private BigDecimal receitaBar = BigDecimal.ZERO;
 
-
-    private BigDecimal custoFixo = BigDecimal.ZERO;
-
     // ==========================================
     // 🔴 CUSTOS DIRETOS [NA HORA] (Sai do caixa no dia)
     // ==========================================
@@ -59,6 +56,11 @@ public class Evento {
 
     @Builder.Default
     private BigDecimal custoSom = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal custoFixo = BigDecimal.ZERO;
+
 
     // ==========================================
     // 📦 PROVISÕES [CAIXINHAS] (Guarda para pagar depois)
@@ -89,7 +91,8 @@ public class Evento {
         return custoProblemas.add(custoDiarias).add(custoPromoters)
                 .add(custoDjPagode).add(custoSeguranca).add(custoSom)
                 .add(provisaoCustoBar).add(provisaoSocios)
-                .add(provisaoDecoracao).add(provisaoTaxa);
+                .add(provisaoDecoracao).add(provisaoTaxa)
+                .add(custoFixo);
     }
 
     // Calcula o Lucro do Dia (Receita - Total de Custos)
