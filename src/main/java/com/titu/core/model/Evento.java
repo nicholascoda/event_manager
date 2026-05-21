@@ -28,25 +28,32 @@ public class Evento {
     // ==========================================
     // 💰 ENTRADAS
     // ==========================================
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal receitaBar = BigDecimal.ZERO;
+
+
+    private BigDecimal custoFixo = BigDecimal.ZERO;
 
     // ==========================================
     // 🔴 CUSTOS DIRETOS [NA HORA] (Sai do caixa no dia)
     // ==========================================
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal custoProblemas = BigDecimal.ZERO;
 
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal custoDiarias = BigDecimal.ZERO; // Diárias + Compras
 
     @Builder.Default
     private BigDecimal custoPromoters = BigDecimal.ZERO;
 
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal custoDjPagode = BigDecimal.ZERO; // Podemos chamar de Atrações também
 
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal custoSeguranca = BigDecimal.ZERO;
 
@@ -56,15 +63,18 @@ public class Evento {
     // ==========================================
     // 📦 PROVISÕES [CAIXINHAS] (Guarda para pagar depois)
     // ==========================================
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal provisaoCustoBar = BigDecimal.ZERO;
 
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal provisaoSocios = BigDecimal.ZERO;
 
     @Builder.Default
     private BigDecimal provisaoDecoracao = BigDecimal.ZERO;
 
+    @Column(precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal provisaoTaxa = BigDecimal.ZERO;
 
@@ -73,6 +83,7 @@ public class Evento {
     // ==========================================
 
     // Calcula a soma de TODOS os custos (Na Hora + Provisão)
+    @Column(precision = 19, scale = 2)
     @Transient
     public BigDecimal getTotalCustos() {
         return custoProblemas.add(custoDiarias).add(custoPromoters)
@@ -82,12 +93,14 @@ public class Evento {
     }
 
     // Calcula o Lucro do Dia (Receita - Total de Custos)
+    @Column(precision = 19, scale = 2)
     @Transient
     public BigDecimal getLucroDoDia() {
         return receitaBar.subtract(getTotalCustos());
     }
 
     // Calcula a Margem Bruta em Porcentagem %
+    @Column(precision = 19, scale = 2)
     @Transient
     public BigDecimal getMargem() {
         if (receitaBar.compareTo(BigDecimal.ZERO) == 0) {

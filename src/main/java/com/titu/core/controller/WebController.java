@@ -2,15 +2,19 @@ package com.titu.core.controller;
 
 import com.titu.core.model.Cliente;
 import com.titu.core.model.Despesa;
+import com.titu.core.model.Evento;
 import com.titu.core.repository.EventoRepository;
 import com.titu.core.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.math.BigDecimal;
 
 @Controller
 @RequiredArgsConstructor
@@ -24,10 +28,6 @@ public class WebController {
     private final TipoEventoService tipoEventoService;
     private final FechamentoService fechamentoService;
 
-    @ModelAttribute("currentUri")
-    public String getCurrentUri(HttpServletRequest request) {
-        return request.getRequestURI();
-    }
 
     // =========================================================================
     // ROTAS PRINCIPAIS & DASHBOARD
@@ -98,16 +98,28 @@ public class WebController {
     // =========================================================================
 
     @GetMapping("/despesas")
-    public String paginaDespesas(Model model) {
-        model.addAttribute("despesas", despesaService.listarTodas());
-        model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
+    public String paginaDespesas(@RequestParam(required = false) Integer mes,
+                                 @RequestParam(required = false) Integer ano,
+                                 Model model) {
 
-        // AGORA BUSCA DO BANCO DE DADOS!
+        // Se entrar sem filtro, puxa o mês atual
+        if (mes == null || ano == null) {
+            java.time.LocalDate hoje = java.time.LocalDate.now();
+            mes = hoje.getMonthValue();
+            ano = hoje.getYear();
+        }
+
+        // Filtra as despesas exatamente daquele mês e ano
+        model.addAttribute("despesas", despesaService.listarPorMesEAno(ano, mes));
+        model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
         model.addAttribute("categorias", categoriaService.listarTodas());
         model.addAttribute("formasPagamento", com.titu.core.model.FormaPagamento.values());
-
-        // Mandando os Tipos (Provisão/Variável) para o modal de NOVA Categoria
         model.addAttribute("tiposCategoria", com.titu.core.model.TipoCategoria.values());
+
+        // Trava do Mês (O Cadeado de Segurança)
+        model.addAttribute("mesTrancado", fechamentoService.isMesTrancado(mes, ano));
+        model.addAttribute("mesSelecionado", mes);
+        model.addAttribute("anoSelecionado", ano);
 
         return "despesas";
     }
@@ -262,6 +274,9 @@ public class WebController {
                 case "provisaoSocios": evento.setProvisaoSocios(num); break;
                 case "provisaoDecoracao": evento.setProvisaoDecoracao(num); break;
                 case "provisaoTaxa": evento.setProvisaoTaxa(num); break;
+                // Dentro do seu switch(campo):
+                case "custoFixo": evento.setCustoFixo(num); break; // ADICIONE ESTA LINHA
+
             }
         }
 
@@ -352,6 +367,32 @@ public class WebController {
             redirectAttributes.addFlashAttribute("mensagemErro", "Não é possível excluir: Esta categoria possui contas vinculadas na aba de Despesas.");
         }
         return "redirect:/configuracoes";
+    }
+
+    @PostMapping("/eventos/limpar-linha")
+    @ResponseBody
+    public ResponseEntity<?> limparLinha(@RequestParam Long id) {
+        // 1. Usa o nome correto (eventoService) e o novo método (buscarPorId)
+        Evento evento = eventoService.buscarPorId(id);
+
+        // 2. Zera tudo
+        evento.setReceitaBar(BigDecimal.ZERO);
+        evento.setProvisaoCustoBar(BigDecimal.ZERO);
+        evento.setCustoProblemas(BigDecimal.ZERO);
+        evento.setCustoDiarias(BigDecimal.ZERO);
+        evento.setCustoPromoters(BigDecimal.ZERO);
+        evento.setCustoDjPagode(BigDecimal.ZERO);
+        evento.setCustoSeguranca(BigDecimal.ZERO);
+        evento.setCustoSom(BigDecimal.ZERO);
+        evento.setProvisaoSocios(BigDecimal.ZERO);
+        evento.setProvisaoDecoracao(BigDecimal.ZERO);
+        evento.setProvisaoTaxa(BigDecimal.ZERO);
+        evento.setCustoFixo(BigDecimal.ZERO);
+
+        // 3. Salva e o service cuida de tudo
+        eventoService.salvar(evento);
+
+        return ResponseEntity.ok().build();
     }
 
 

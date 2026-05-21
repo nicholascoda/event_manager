@@ -2,6 +2,7 @@ package com.titu.core.controller;
 
 import com.titu.core.model.Usuario;
 import com.titu.core.repository.UsuarioRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -23,4 +24,10 @@ public class GlobalAdvice {
         }
         return null;
     }
+
+    @ModelAttribute("currentUri")
+    public String getCurrentUri(HttpServletRequest request) {
+        return request.getRequestURI();
+    }
+
 }

@@ -37,4 +37,10 @@ public class TratadorDeErros {
     public ResponseEntity tratarErroRegraNegocio(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(ex.getMessage());
     }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> tratarErroRegraNegocio(RuntimeException ex) {
+        // Retorna apenas a mensagem "Operação bloqueada..." sem o caminho completo do erro
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
 }

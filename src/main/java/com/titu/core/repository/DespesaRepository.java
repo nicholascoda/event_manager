@@ -22,4 +22,13 @@ public interface DespesaRepository extends JpaRepository<Despesa, Long> {
     // O Java vai ler a 'descricao' dentro da classe 'Categoria'
     @Query("SELECT SUM(d.valor) FROM Despesa d WHERE d.categoria.descricao = :categoriaNome AND d.status = 'PAGO' AND d.dataLancamento >= :inicio AND d.dataLancamento <= :fim")
     BigDecimal somarDespesasPagasPorCategoria(@Param("categoriaNome") String categoriaNome, @Param("inicio") LocalDate inicio, @Param("fim") LocalDate fim);
+
+    @Query("SELECT d FROM Despesa d WHERE EXTRACT(YEAR FROM d.dataLancamento) = :ano AND EXTRACT(MONTH FROM d.dataLancamento) = :mes ORDER BY d.dataLancamento DESC")
+    List<Despesa> findByAnoEMes(int ano, int mes);
+
+
+
+
+
+
 }

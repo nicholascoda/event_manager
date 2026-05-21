@@ -81,6 +81,12 @@ public class DespesaService {
         despesaRepository.save(despesa);
     }
 
+    public List<Despesa> listarPorMesEAno(int ano, int mes) {
+        return despesaRepository.findByAnoEMes(ano, mes);
+    }
+
+
+
 
 
 

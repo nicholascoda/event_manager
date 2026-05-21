@@ -45,7 +45,7 @@ public class Despesa {
     private Categoria categoria;
 
     // Coluna: VALOR (R$)
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal valor;
 
     // Coluna: STATUS (Pago, Pendente...)

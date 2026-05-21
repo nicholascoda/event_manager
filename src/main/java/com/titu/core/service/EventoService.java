@@ -119,5 +119,9 @@ public class EventoService {
         return eventoRepository.findByMesEAno(ano, mes);
     }
 
+    public Evento buscarPorId(Long id) {
+        return eventoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evento não encontrado com o ID: " + id));
+    }
 
 }

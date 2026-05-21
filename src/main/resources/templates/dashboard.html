@@ -1,161 +1,256 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/geral :: head}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="hold-transition sidebar-mini layout-fixed bg-light">
+<script>
+    if (localStorage.getItem('modoEscuro') === 'true') {
+        document.write('<style>body, html { background-color: #343a40 !important; color: #c2c7d0 !important; }</style>');
+    }
+</script>
+
+<body class="hold-transition sidebar-mini layout-fixed">
 <script>
     if (localStorage.getItem('menuFechado') === 'true') {
         document.body.classList.add('sidebar-collapse');
     }
+    if (localStorage.getItem('modoEscuro') === 'true') {
+        document.documentElement.classList.add('dark-mode');
+    }
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <style>
-    /* Estilos Premium para o Dashboard */
-    .small-box { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s; }
-    .small-box:hover { transform: translateY(-5px); }
-    .small-box .icon { opacity: 0.3; }
-    .text-money { font-family: 'Courier New', Courier, monospace; letter-spacing: -0.5px; }
-    .card-modern { border-radius: 12px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-    .card-modern .card-header { border-bottom: 1px solid rgba(0,0,0,0.05); background-color: #fff; border-radius: 12px 12px 0 0; }
-    .table-ranking td { vertical-align: middle; border-top: 1px dashed #e9ecef; }
+    /* UI/UX Premium - Estilo SaaS Moderno */
+    .text-money { font-family: 'Inter', sans-serif; letter-spacing: -0.5px; font-weight: 700; }
+
+    .card-saas { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: all 0.3s ease; background: #fff; }
+    body.dark-mode .card-saas { background: #343a40; box-shadow: 0 4px 20px rgba(0,0,0,0.2); border: 1px solid #454d55; }
+    .card-saas:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06); transform: translateY(-3px); }
+    body.dark-mode .card-saas:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+
+    .icon-box { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .bg-light-success { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+    .bg-light-danger { background: rgba(220, 53, 69, 0.1); color: #dc3545; }
+    .bg-light-primary { background: rgba(0, 123, 255, 0.1); color: #007bff; }
+    .bg-light-warning { background: rgba(255, 193, 7, 0.15); color: #d39e00; }
+
+    .dre-list .list-group-item { border-color: rgba(0,0,0,0.03); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+    body.dark-mode .dre-list .list-group-item { background-color: transparent; border-color: #454d55; color: #c2c7d0; }
+    .dre-total { background-color: #1a2233; color: white; border-radius: 8px; margin-top: 10px; }
+
+    .progress-sm { height: 6px; border-radius: 3px; background-color: #e9ecef; }
+    body.dark-mode .progress-sm { background-color: #454d55; }
+
+    .btn-export { border-radius: 8px; font-weight: 600; padding: 8px 20px; transition: 0.2s; }
+    .btn-export:hover { transform: scale(1.03); }
+
+    @media print {
+        .card-saas { box-shadow: none !important; border: 1px solid #ddd !important; }
+        .dataTables_filter { display: none !important; }
+        body.dark-mode { background-color: white !important; color: black !important; }
+    }
 </style>
 
 <div class="wrapper">
     <nav th:replace="~{fragments/geral :: navbar}"></nav>
     <aside th:replace="~{fragments/geral :: sidebar}"></aside>
 
-    <div class="content-wrapper px-3 py-4">
+    <div class="content-wrapper px-4 py-4">
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
             <div>
-                <h2 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">Dashboard de Vendas</h2>
-                <p class="text-muted text-sm mb-0">Visão consolidada do caixa da sua empresa.</p>
+                <h2 class="m-0 font-weight-bold" style="letter-spacing: -1px;">
+                    Visão Geral do Negócio
+                </h2>
+                <p class="text-muted text-sm mb-0 mt-1">Acompanhamento de DRE, métricas de crescimento e faturamento.</p>
             </div>
 
-            <form action="/dashboard" method="GET" class="form-inline bg-white p-2 rounded-pill shadow-sm border">
-                <i class="fas fa-calendar-alt mx-3 text-primary"></i>
-                <select name="mes" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" onchange="this.form.submit()">                    <option value="1" th:selected="${mesSelecionado == 1}">Janeiro</option>
-                    <option value="2" th:selected="${mesSelecionado == 2}">Fevereiro</option>
-                    <option value="3" th:selected="${mesSelecionado == 3}">Março</option>
-                    <option value="4" th:selected="${mesSelecionado == 4}">Abril</option>
-                    <option value="5" th:selected="${mesSelecionado == 5}">Maio</option>
-                    <option value="6" th:selected="${mesSelecionado == 6}">Junho</option>
-                    <option value="7" th:selected="${mesSelecionado == 7}">Julho</option>
-                    <option value="8" th:selected="${mesSelecionado == 8}">Agosto</option>
-                    <option value="9" th:selected="${mesSelecionado == 9}">Setembro</option>
-                    <option value="10" th:selected="${mesSelecionado == 10}">Outubro</option>
-                    <option value="11" th:selected="${mesSelecionado == 11}">Novembro</option>
-                    <option value="12" th:selected="${mesSelecionado == 12}">Dezembro</option>
-                </select>
-                <span class="mx-2 text-muted">/</span>
-                <input type="number" name="ano" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" style="width: 70px;" th:value="${anoSelecionado}" onchange="this.form.submit()">            </form>
+            <div class="d-flex align-items-center mt-3 mt-md-0">
+                <button onclick="gerarPDF()" class="btn btn-danger btn-export shadow-sm mr-3">
+                    <i class="fas fa-file-pdf mr-2"></i> Baixar Relatório
+                </button>
+
+                <form action="/dashboard" method="GET" class="form-inline bg-white p-2 rounded shadow-sm border m-0" style="border-radius: 10px !important;">
+                    <i class="fas fa-calendar-alt mx-2 text-primary"></i>
+                    <select name="mes" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" onchange="this.form.submit()" style="cursor: pointer;">
+                        <option value="1" th:selected="${mesSelecionado == 1}">Janeiro</option>
+                        <option value="2" th:selected="${mesSelecionado == 2}">Fevereiro</option>
+                        <option value="3" th:selected="${mesSelecionado == 3}">Março</option>
+                        <option value="4" th:selected="${mesSelecionado == 4}">Abril</option>
+                        <option value="5" th:selected="${mesSelecionado == 5}">Maio</option>
+                        <option value="6" th:selected="${mesSelecionado == 6}">Junho</option>
+                        <option value="7" th:selected="${mesSelecionado == 7}">Julho</option>
+                        <option value="8" th:selected="${mesSelecionado == 8}">Agosto</option>
+                        <option value="9" th:selected="${mesSelecionado == 9}">Setembro</option>
+                        <option value="10" th:selected="${mesSelecionado == 10}">Outubro</option>
+                        <option value="11" th:selected="${mesSelecionado == 11}">Novembro</option>
+                        <option value="12" th:selected="${mesSelecionado == 12}">Dezembro</option>
+                    </select>
+                    <span class="mx-1 text-muted">/</span>
+                    <input type="number" name="ano" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" style="width: 70px;" th:value="${anoSelecionado}" onchange="this.form.submit()">
+                </form>
+            </div>
         </div>
 
-        <section class="content p-0">
+        <section id="area-relatorio" class="content p-0">
 
-            <div class="row">
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-success">
-                        <div class="inner p-4">
-                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.faturamentoBrutoEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
-                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Faturamento Bruto</p>
-                        </div>
-                        <div class="icon"><i class="fas fa-chart-line"></i></div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-6">
-                    <div class="small-box" style="background-color: #fd7e14; color: white;">
-                        <div class="inner p-4">
-                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.custosDiretosEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
-                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Custos (Eventos)</p>
-                        </div>
-                        <div class="icon"><i class="fas fa-bolt"></i></div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
-                        <div class="inner p-4">
-                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.totalDespesasFixas, 1, 'POINT', 2, 'COMMA')}"></h3>
-                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Despesas Fixas</p>
-                        </div>
-                        <div class="icon"><i class="fas fa-file-invoice-dollar"></i></div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-6">
-                    <div class="small-box" th:classappend="${dadosDashboard.lucroLiquidoReal.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-primary' : 'bg-dark'">
-                        <div class="inner p-4">
-                            <h3 class="text-money mb-1" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.lucroLiquidoReal, 1, 'POINT', 2, 'COMMA')}"></h3>
-                            <p class="font-weight-bold mb-0 text-uppercase" style="opacity: 0.8; font-size: 0.85rem;">Lucro Líquido</p>
-                        </div>
-                        <div class="icon"><i class="fas fa-piggy-bank"></i></div>
-                    </div>
-                </div>
+            <div class="d-none d-print-block mb-4 text-center mt-3">
+                <h3 class="font-weight-bold text-dark" style="letter-spacing: -1px;">DRE & Indicadores de Performance</h3>
+                <p class="text-muted">Período de Referência: <span class="font-weight-bold" th:text="${mesSelecionado} + '/' + ${anoSelecionado}"></span></p>
+                <hr>
             </div>
 
-            <div class="row mt-2">
+            <th:block th:with="margemBruta=${dadosDashboard.faturamentoBrutoEventos > 0 ? (dadosDashboard.lucroOperacionalEventos * 100.0 / dadosDashboard.faturamentoBrutoEventos) : 0.0}">
 
-                <div class="col-lg-5">
-                    <div class="card card-modern h-100">
-                        <div class="card-header pt-4 pb-2">
-                            <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-chart-pie mr-2 text-primary"></i>Representatividade do Lucro</h3>
-                        </div>
-                        <div class="card-body d-flex justify-content-center align-items-center relative" style="min-height: 300px;">
-                            <div th:if="${#lists.isEmpty(dadosDashboard.rankingFestas)}" class="text-center text-muted">
-                                <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
-                                <p>Sem dados financeiros para gerar gráficos neste mês.</p>
+                <div class="row mb-2">
+                    <div class="col-lg-3 col-sm-6 mb-4">
+                        <div class="card card-saas h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted text-sm font-weight-bold text-uppercase mb-1">Receita (Bar)</p>
+                                    <h3 class="text-money m-0" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.faturamentoBrutoEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
+                                </div>
+                                <div class="icon-box bg-light-success"><i class="fas fa-arrow-up"></i></div>
                             </div>
-                            <canvas id="meuGrafico" th:if="${!#lists.isEmpty(dadosDashboard.rankingFestas)}" style="max-height: 280px;"></canvas>
-                            <ul id="dadosEscondidosGrafico" style="display:none;">
-                                <li th:each="festa : ${dadosDashboard.rankingFestas}"
-                                    th:attr="data-nome=${festa.nomeFesta}, data-lucro=${festa.lucroTotal}, data-cor=${festa.cor}">
-                                </li>
-                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6 mb-4">
+                        <div class="card card-saas h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted text-sm font-weight-bold text-uppercase mb-1">Custos Diretos</p>
+                                    <h3 class="text-money m-0" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.custosDiretosEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
+                                </div>
+                                <div class="icon-box bg-light-danger"><i class="fas fa-fire"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6 mb-4">
+                        <div class="card card-saas h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted text-sm font-weight-bold text-uppercase mb-1">Lucro Bruto</p>
+                                    <h3 class="text-money m-0" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.lucroOperacionalEventos, 1, 'POINT', 2, 'COMMA')}"></h3>
+                                </div>
+                                <div class="icon-box bg-light-primary"><i class="fas fa-chart-pie"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6 mb-4">
+                        <div class="card card-saas h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted text-sm font-weight-bold text-uppercase mb-1">Margem Bruta</p>
+                                    <h3 class="text-money m-0" th:text="${#numbers.formatDecimal(margemBruta, 1, 'POINT', 1, 'COMMA')} + '%'"></h3>
+                                </div>
+                                <div class="icon-box bg-light-warning"><i class="fas fa-percent"></i></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-7">
-                    <div class="card card-modern h-100">
-                        <div class="card-header pt-4 pb-2">
-                            <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-trophy mr-2 text-warning"></i>Top Performance por Evento</h3>
+                <div class="row mb-2">
+
+                    <div class="col-lg-5 mb-4">
+                        <div class="card card-saas h-100">
+                            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                                <h5 class="font-weight-bold m-0"><i class="fas fa-chart-donut text-primary mr-2"></i>Fatias do Lucro</h5>
+                            </div>
+                            <div class="card-body d-flex justify-content-center align-items-center relative" style="min-height: 280px;">
+                                <div th:if="${#lists.isEmpty(dadosDashboard.rankingFestas)}" class="text-center text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                                    <p>Sem dados financeiros registrados neste mês.</p>
+                                </div>
+
+                                <canvas id="meuGrafico" th:if="${!#lists.isEmpty(dadosDashboard.rankingFestas)}" style="max-height: 250px;"></canvas>
+                                <ul id="dadosEscondidosGrafico" style="display:none;">
+                                    <li th:each="festa : ${dadosDashboard.rankingFestas}"
+                                        th:attr="data-nome=${festa.nomeFesta}, data-lucro=${festa.lucroTotal}, data-cor=${festa.cor}">
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover table-ranking mb-0">
-                                    <thead class="bg-light text-muted text-xs text-uppercase">
+                    </div>
+
+                    <div class="col-lg-7 mb-4">
+                        <div class="card card-saas h-100">
+                            <div class="card-header bg-transparent border-0 pt-4 pb-2">
+                                <h5 class="font-weight-bold m-0"><i class="fas fa-calculator mr-2"></i>Apuração do Lucro Líquido</h5>
+                            </div>
+                            <div class="card-body pt-0">
+                                <ul class="list-group list-group-flush dre-list">
+                                    <li class="list-group-item px-0">
+                                        <span>Receita Total (Bar)</span>
+                                        <span class="font-weight-bold text-money text-success" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.faturamentoBrutoEventos, 1, 'POINT', 2, 'COMMA')}"></span>
+                                    </li>
+                                    <li class="list-group-item px-0">
+                                        <span>(-) Custos Diretos do Evento</span>
+                                        <span class="font-weight-bold text-money text-danger" th:text="'R$ (' + ${#numbers.formatDecimal(dadosDashboard.custosDiretosEventos, 1, 'POINT', 2, 'COMMA')} + ')'"></span>
+                                    </li>
+                                    <li class="list-group-item px-0 mt-2 mb-2" style="background-color: rgba(0, 123, 255, 0.05); border-radius: 8px; padding: 10px 15px;">
+                                        <span class="font-weight-bold">(=) Lucro Bruto dos Eventos</span>
+                                        <span class="font-weight-bold text-money text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.lucroOperacionalEventos, 1, 'POINT', 2, 'COMMA')}"></span>
+                                    </li>
+                                    <li class="list-group-item px-0">
+                                        <span>(-) Saídas Variáveis / Fixas da Empresa</span>
+                                        <span class="font-weight-bold text-money text-danger" th:text="'R$ (' + ${#numbers.formatDecimal(dadosDashboard.totalDespesasFixas, 1, 'POINT', 2, 'COMMA')} + ')'"></span>
+                                    </li>
+
+                                    <li class="list-group-item px-3 dre-total" th:classappend="${dadosDashboard.lucroLiquidoReal >= 0} ? 'bg-success' : 'bg-danger'">
+                                        <span class="font-weight-bold text-uppercase" style="font-size: 1.1rem;">(=) Lucro Líquido Real</span>
+                                        <span class="font-weight-bold text-money" style="font-size: 1.3rem;" th:text="'R$ ' + ${#numbers.formatDecimal(dadosDashboard.lucroLiquidoReal, 1, 'POINT', 2, 'COMMA')}"></span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-saas">
+                            <div class="card-header bg-transparent border-0 pt-4 pb-2">
+                                <h5 class="font-weight-bold m-0"><i class="fas fa-list-alt text-success mr-2"></i>Detalhamento por Evento</h5>
+                            </div>
+                            <div class="card-body pt-0">
+                                <table id="tabela-eventos-dashboard" class="table table-hover border-bottom mb-0">
+                                    <thead class="text-muted text-xs text-uppercase">
                                     <tr>
-                                        <th class="pl-4 py-3">Tipo de Festa</th>
-                                        <th class="text-center py-3">Realizadas</th>
-                                        <th class="text-right py-3">Faturamento</th>
-                                        <th class="text-right pr-4 py-3">Lucro Líquido</th>
+                                        <th class="border-0 pl-3">Tipo de Festa</th>
+                                        <th class="border-0 text-center">Dias (Qtd)</th>
+                                        <th class="border-0 text-right">Faturamento Bar</th>
+                                        <th class="border-0 text-right">Lucro Limpo</th>
+                                        <th class="border-0 text-right pr-4" style="width: 20%;">Margem</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    <tr th:each="festa, iterStat : ${dadosDashboard.rankingFestas}">
-                                        <td class="pl-4 py-3">
+                                    <tr th:each="festa : ${dadosDashboard.rankingFestas}">
+                                        <td class="pl-3 align-middle">
                                             <div class="d-flex align-items-center">
-                                                <span th:if="${iterStat.index == 0}" class="badge badge-warning mr-3 py-1 px-2"><i class="fas fa-medal"></i> 1º</span>
-                                                <span th:if="${iterStat.index == 1}" class="badge badge-secondary mr-3 py-1 px-2"><i class="fas fa-medal"></i> 2º</span>
-                                                <span th:if="${iterStat.index == 2}" class="badge badge-info mr-3 py-1 px-2"><i class="fas fa-medal"></i> 3º</span>
-                                                <span th:if="${iterStat.index > 2}" class="badge bg-light text-dark mr-3 py-1 px-2" th:text="${iterStat.index + 1} + 'º'"></span>
-
-                                                <i class="fas fa-circle text-xs mr-2" th:style="'color: ' + ${festa.cor}"></i>
-                                                <span class="font-weight-bold text-dark" th:text="${festa.nomeFesta}"></span>
+                                                <i class="fas fa-circle text-xs mr-2 shadow-sm" th:style="'color: ' + ${festa.cor} + '; border-radius: 50%;'"></i>
+                                                <span class="font-weight-bold" th:text="${festa.nomeFesta}"></span>
                                             </div>
                                         </td>
-                                        <td class="text-center py-3">
-                                            <span class="badge badge-light border text-dark px-2 py-1 text-sm" th:text="${festa.quantidadeRealizada} + ' dias'"></span>
+                                        <td class="text-center align-middle">
+                                            <span class="badge border px-2 py-1" th:text="${festa.quantidadeRealizada} + 'x'"></span>
                                         </td>
-                                        <td class="text-right text-success text-money py-3" th:text="'R$ ' + ${#numbers.formatDecimal(festa.receitaTotal, 1, 'POINT', 2, 'COMMA')}"></td>
-                                        <td class="text-right text-primary font-weight-bold text-money pr-4 py-3" th:text="'R$ ' + ${#numbers.formatDecimal(festa.lucroTotal, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    </tr>
-                                    <tr th:if="${#lists.isEmpty(dadosDashboard.rankingFestas)}">
-                                        <td colspan="4" class="text-center text-muted py-5">Nenhum evento com movimentação financeira encontrado.</td>
+                                        <td class="text-right text-success font-weight-bold text-money align-middle" th:text="'R$ ' + ${#numbers.formatDecimal(festa.receitaTotal, 1, 'POINT', 2, 'COMMA')}"></td>
+                                        <td class="text-right text-primary font-weight-bold text-money align-middle" th:text="'R$ ' + ${#numbers.formatDecimal(festa.lucroTotal, 1, 'POINT', 2, 'COMMA')}"></td>
+
+                                        <th:block th:with="margemEvento=${festa.receitaTotal > 0 ? (festa.lucroTotal * 100.0 / festa.receitaTotal) : 0.0}">
+                                            <td class="align-middle pr-4">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="text-xs font-weight-bold" th:text="${#numbers.formatDecimal(margemEvento, 1, 'POINT', 1, 'COMMA')} + '%'"></span>
+                                                </div>
+                                                <div class="progress progress-sm">
+                                                    <div class="progress-bar" th:style="'width: ' + ${margemEvento} + '%; background-color: ' + ${festa.cor}"></div>
+                                                </div>
+                                            </td>
+                                        </th:block>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -164,62 +259,93 @@
                     </div>
                 </div>
 
-            </div>
+            </th:block>
         </section>
     </div>
     <footer th:replace="~{fragments/geral :: footer}"></footer>
 </div>
 
 <div th:replace="~{fragments/geral :: scripts}"></div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script th:if="${!#lists.isEmpty(dadosDashboard.rankingFestas)}">
-    $(function () {
-        var nomesFestas = [];
-        var lucrosFestas = [];
-        var coresFestas = [];
 
-        // O JS varre a nossa lista escondida e puxa os dados sem erro de sintaxe!
-        // O JS varre a nossa lista escondida e puxa os dados sem erro de sintaxe!
-        $('#dadosEscondidosGrafico li').each(function() {
-            let lucro = parseFloat($(this).data('lucro'));
+<script th:inline="javascript">
+    $(document).ready(function() {
 
-            // O FILTRO DE NEGÓCIO: Só ganha fatia no gráfico quem deu lucro positivo!
-            if (lucro > 0) {
-                nomesFestas.push($(this).data('nome'));
-                lucrosFestas.push(lucro);
-                coresFestas.push($(this).data('cor'));
+        $('#tabela-eventos-dashboard').DataTable({
+            "responsive": true,
+            "lengthChange": false,
+            "paging": false,
+            "info": false,
+            "order": [ [3, 'desc'] ], // Hack para o Java não quebrar
+            "language": {
+                "search": "<i class='fas fa-search text-muted'></i> Pesquisar festa:",
+                "zeroRecords": "Nenhuma festa encontrada nesta competência."
             }
         });
 
-        // Se tiver festa, a gente aciona o Chart.js
-        if (nomesFestas.length > 0) {
-            var ctx = document.getElementById('meuGrafico').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: nomesFestas,
-                    datasets: [{
-                        data: lucrosFestas,
-                        backgroundColor: coresFestas,
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' }
-                        }
-                    }
+        // O Java joga 'true' ou 'false' aqui de forma 100% segura
+        var temFestas = /*[[${!#lists.isEmpty(dadosDashboard.rankingFestas)}]]*/ false;
+
+        if (temFestas) {
+            var nomesFestas = [];
+            var lucrosFestas = [];
+            var coresFestas = [];
+
+            $('#dadosEscondidosGrafico li').each(function() {
+                let lucro = parseFloat($(this).data('lucro'));
+                if (lucro > 0) {
+                    nomesFestas.push($(this).data('nome'));
+                    lucrosFestas.push(lucro);
+                    coresFestas.push($(this).data('cor'));
                 }
             });
+
+            if (nomesFestas.length > 0) {
+                var ctx = document.getElementById('meuGrafico').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: nomesFestas,
+                        datasets: [{
+                            data: lucrosFestas,
+                            backgroundColor: coresFestas,
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '75%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } }
+                        }
+                    }
+                });
+            }
         }
     });
+
+    function gerarPDF() {
+        const element = document.getElementById('area-relatorio');
+        const mesText = document.querySelector('select[name="mes"] option:checked').text;
+        const anoText = document.querySelector('input[name="ano"]').value;
+
+        const classesEscondidas = document.querySelectorAll('.d-print-block');
+        classesEscondidas.forEach(el => el.classList.remove('d-none'));
+
+        var opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     `Relatorio-DRE-${mesText}-${anoText}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            classesEscondidas.forEach(el => el.classList.add('d-none'));
+        });
+    }
 </script>
 
 </body>
