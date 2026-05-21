@@ -109,8 +109,28 @@ public class WebController {
             ano = hoje.getYear();
         }
 
-        // Filtra as despesas exatamente daquele mês e ano
-        model.addAttribute("despesas", despesaService.listarPorMesEAno(ano, mes));
+        // 1. Guardamos a lista em uma variável primeiro
+        java.util.List<Despesa> despesasDoMes = despesaService.listarPorMesEAno(ano, mes);
+
+        // 2. Fazemos a matemática (Streams do Java)
+        java.math.BigDecimal totalGeral = despesasDoMes.stream()
+                .map(Despesa::getValor)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        java.math.BigDecimal totalPendente = despesasDoMes.stream()
+                .filter(d -> d.getStatus().name().equals("PENDENTE"))
+                .map(Despesa::getValor)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        int totalLancamentos = despesasDoMes.size();
+
+        // 3. Enviamos a lista E os totais mastigados para a tela
+        model.addAttribute("despesas", despesasDoMes);
+        model.addAttribute("totalGeral", totalGeral);
+        model.addAttribute("totalPendente", totalPendente);
+        model.addAttribute("totalLancamentos", totalLancamentos);
+
+        // 4. O resto do seu código continua idêntico!
         model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
         model.addAttribute("categorias", categoriaService.listarTodas());
         model.addAttribute("formasPagamento", com.titu.core.model.FormaPagamento.values());

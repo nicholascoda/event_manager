@@ -82,6 +82,45 @@
                     </div>
                 </div>
 
+                <div class="row mb-4">
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-0 shadow-sm rounded-lg p-3 h-100 d-flex flex-row align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted text-xs text-uppercase font-weight-bold mb-1" style="letter-spacing: 0.5px;">Total Geral Lançado</p>
+                                <h3 class="font-weight-bold text-dark m-0 text-money" th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h3>
+                            </div>
+                            <div class="icon-box rounded-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: rgba(0, 123, 255, 0.1); color: #007bff;">
+                                <i class="fas fa-wallet fa-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-0 shadow-sm rounded-lg p-3 h-100 d-flex flex-row align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted text-xs text-uppercase font-weight-bold mb-1" style="letter-spacing: 0.5px;">Total de Saídas</p>
+                                <h3 class="font-weight-bold text-dark m-0" th:text="${totalLancamentos} + ' registros'">0 registros</h3>
+                            </div>
+                            <div class="icon-box rounded-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: rgba(23, 162, 184, 0.1); color: #17a2b8;">
+                                <i class="fas fa-list-ol fa-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-0 shadow-sm rounded-lg p-3 h-100 d-flex flex-row align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted text-xs text-uppercase font-weight-bold mb-1" style="letter-spacing: 0.5px;">Total Pendente (A Pagar)</p>
+                                <h3 class="font-weight-bold text-danger m-0 text-money" th:text="'R$ ' + ${#numbers.formatDecimal(totalPendente, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h3>
+                            </div>
+                            <div class="icon-box rounded-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                                <i class="fas fa-exclamation-circle fa-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card shadow-sm border-top border-dark">
                     <div class="card-body p-0">
                         <div class="table-responsive text-nowrap">
