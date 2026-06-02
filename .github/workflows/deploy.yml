@@ -1,0 +1,55 @@
+name: Deploy Automático SaaS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Baixar o código do repositório
+        uses: actions/checkout@v3
+
+      - name: 2. Preparar o ambiente Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: 3. Construir o projeto (Maven)
+        run: mvn clean package -DskipTests
+
+      - name: 4. Enviar o novo sistema para a Oracle (SCP)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "target/*.jar"
+          target: "/home/ubuntu"
+          strip_components: 1
+
+      - name: 5. Reiniciar o Servidor no Modo Fantasma (SSH)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # Entra na pasta principal do servidor
+            cd /home/ubuntu
+            
+            # Derruba a versão antiga do sistema de forma segura
+            pkill -f 'java -jar' || true
+            sleep 3
+            
+            # Puxa as senhas do cofre do GitHub
+            export DB_URL="${{ secrets.DB_URL }}"
+            export DB_USER="${{ secrets.DB_USER }}"
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            
+            # Sobe a versão nova blindada e em segundo plano
+            nohup java -jar *.jar > log_do_sistema.txt 2>&1 &
