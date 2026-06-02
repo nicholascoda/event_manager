@@ -39,21 +39,16 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            # Entra na pasta principal do servidor
             cd /home/ubuntu
             
-            # Derruba a versão antiga do sistema de forma segura
+            # Derruba o antigo
             pkill -f 'java -jar' || true
             sleep 3
-            
-            # Puxa as senhas do cofre do GitHub
-            export DB_URL="${{ secrets.DB_URL }}"
-            export DB_USER="${{ secrets.DB_USER }}"
-            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            
-            # Sobe a versão nova 100% desconectada do terminal (o pulo do gato é o </dev/null)
-            nohup java -jar *.jar > log_do_sistema.txt 2>&1 </dev/null &
-            
-            # Dá um tempo pro Java respirar e avisa o robô que ele pode ir embora
-            sleep 5
-            exit
+              
+            # Puxa o cofre
+             export DB_URL="${{ secrets.DB_URL }}"
+             export DB_USER="${{ secrets.DB_USER }}"
+             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+              
+            # O pulo do gato: setsid corta o cordão umbilical de vez
+             setsid java -jar *.jar > log_do_sistema.txt 2>&1 < /dev/null &
