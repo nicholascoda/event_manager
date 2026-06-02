@@ -51,5 +51,9 @@ jobs:
             export DB_USER="${{ secrets.DB_USER }}"
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
             
-            # Sobe a versão nova blindada e em segundo plano
-            nohup java -jar *.jar > log_do_sistema.txt 2>&1 &
+            # Sobe a versão nova 100% desconectada do terminal (o pulo do gato é o </dev/null)
+            nohup java -jar *.jar > log_do_sistema.txt 2>&1 </dev/null &
+            
+            # Dá um tempo pro Java respirar e avisa o robô que ele pode ir embora
+            sleep 5
+            exit
