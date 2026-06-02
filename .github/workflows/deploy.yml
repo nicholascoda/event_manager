@@ -35,41 +35,9 @@ jobs:
           target: "/home/ubuntu"
           strip_components: 1
 
-      - name: 5. O Golpe Final (Systemd)
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            # Derruba as versões antigas que rodavam na gambiarra
-            pkill -f 'java -jar' || true
-            
-            # Cria o cofre de senhas isolado dentro do servidor
-            echo "DB_URL=${{ secrets.DB_URL }}" > /home/ubuntu/.env
-            echo "DB_USER=${{ secrets.DB_USER }}" >> /home/ubuntu/.env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> /home/ubuntu/.env
-            
-            # Instala o seu sistema como um Serviço Oficial do Windows/Linux
-            sudo bash -c 'cat > /etc/systemd/system/titu.service <<EOF
-            [Unit]
-            Description=SaaS Titu
-            After=network.target
-
-            [Service]
-            User=ubuntu
-            EnvironmentFile=/home/ubuntu/.env
-            WorkingDirectory=/home/ubuntu
-            ExecStart=/usr/bin/java -jar /home/ubuntu/app.jar
-            SuccessExitStatus=143
-            Restart=always
-            RestartSec=5
-
-            [Install]
-            WantedBy=multi-user.target
-            EOF'
-            
-            # Religa os motores. Esse comando libera o robô instantaneamente!
-            sudo systemctl daemon-reload
-            sudo systemctl enable titu
-            sudo systemctl restart titu
+      - name: 5. O Golpe Final Nativo (SSH Raiz)
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.HOST }} "cd /home/ubuntu && sudo pkill -f 'java -jar' || true && sleep 3 && DB_URL='${{ secrets.DB_URL }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' nohup java -jar app.jar > log_do_sistema.txt 2>&1 </dev/null &"mctl restart titu
