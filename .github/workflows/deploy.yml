@@ -19,36 +19,57 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: 3. Construir o projeto (Maven)
-        run: mvn clean package -DskipTests
+      - name: 3. Construir e Preparar o Pacote
+        run: |
+          mvn clean package -DskipTests
+          rm -f target/*-plain.jar || true
+          mv target/*.jar target/app.jar
 
-      - name: 4. Enviar o novo sistema para a Oracle (SCP)
+      - name: 4. Enviar para a Oracle (SCP)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: "target/*.jar"
+          source: "target/app.jar"
           target: "/home/ubuntu"
           strip_components: 1
 
-      - name: 5. Reiniciar o Servidor no Modo Fantasma (SSH)
+      - name: 5. O Golpe Final (Systemd)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /home/ubuntu
-            
-            # Derruba o antigo
+            # Derruba as versões antigas que rodavam na gambiarra
             pkill -f 'java -jar' || true
-            sleep 3
-              
-            # Puxa o cofre
-             export DB_URL="${{ secrets.DB_URL }}"
-             export DB_USER="${{ secrets.DB_USER }}"
-             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-              
-            # O pulo do gato: setsid corta o cordão umbilical de vez
-             setsid java -jar *.jar > log_do_sistema.txt 2>&1 < /dev/null &
+            
+            # Cria o cofre de senhas isolado dentro do servidor
+            echo "DB_URL=${{ secrets.DB_URL }}" > /home/ubuntu/.env
+            echo "DB_USER=${{ secrets.DB_USER }}" >> /home/ubuntu/.env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> /home/ubuntu/.env
+            
+            # Instala o seu sistema como um Serviço Oficial do Windows/Linux
+            sudo bash -c 'cat > /etc/systemd/system/titu.service <<EOF
+            [Unit]
+            Description=SaaS Titu
+            After=network.target
+
+            [Service]
+            User=ubuntu
+            EnvironmentFile=/home/ubuntu/.env
+            WorkingDirectory=/home/ubuntu
+            ExecStart=/usr/bin/java -jar /home/ubuntu/app.jar
+            SuccessExitStatus=143
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF'
+            
+            # Religa os motores. Esse comando libera o robô instantaneamente!
+            sudo systemctl daemon-reload
+            sudo systemctl enable titu
+            sudo systemctl restart titu
