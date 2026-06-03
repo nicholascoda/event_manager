@@ -56,8 +56,8 @@
                 <div th:if="${mesTrancado}" class="mb-2">
                     <span class="badge badge-danger p-2 text-md shadow-sm"><i class="fas fa-lock mr-1"></i> Trancado</span>
                 </div>
-                <button th:if="${!mesTrancado}" class="btn btn-dark font-weight-bold shadow-sm rounded-pill px-4 mb-2" data-toggle="modal" data-target="#modal-nova-despesa">
-                    <i class="fas fa-plus mr-1"></i> Nova Pendência
+                <button th:if="${!mesTrancado}" class="btn btn-dark font-weight-bold shadow-sm rounded-pill px-4 py-2 mb-2" data-toggle="modal" data-target="#modal-nova-despesa" onclick="$('select[name=status]').val('PAGO');">
+                    <i class="fas fa-plus mr-1"></i> Despesa Paga
                 </button>
             </div>
         </div>
@@ -102,13 +102,14 @@
                             <table id="tabela-despesas" class="table table-hover table-valign-middle mb-0 text-sm">
                                 <thead class="bg-light text-muted">
                                 <tr>
-                                    <th>Data Pgto</th>
-                                    <th>Doc</th>
-                                    <th>Descrição</th>
-                                    <th>Favorecido</th>
-                                    <th>Forma</th>
+                                    <th>Data</th>
+                                    <th>Nº Doc</th>
+                                    <th>Fornecedor / Beneficiário</th>
+                                    <th>Forma de Pgto</th>
                                     <th>Categoria</th>
                                     <th>Valor</th>
+                                    <th>Status</th>
+                                    <th>Observações</th>
                                     <th>Ações</th>
                                 </tr>
                                 </thead>
@@ -116,7 +117,6 @@
                                 <tr th:each="despesa : ${despesas}">
                                     <td class="font-weight-bold text-success"><i class="far fa-calendar-check mr-1"></i><span th:text="${despesa.dataPagamento != null ? #temporals.format(despesa.dataPagamento, 'dd/MM/yyyy') : #temporals.format(despesa.dataLancamento, 'dd/MM/yyyy')}"></span></td>
                                     <td th:text="${despesa.numeroDocumento ?: '-'}"></td>
-                                    <td class="font-weight-bold text-dark" th:text="${despesa.descricao}"></td>
                                     <td>
                                         <span th:if="${despesa.fornecedor != null}" th:text="${despesa.fornecedor.nomeEmpresa}"></span>
                                         <em th:if="${despesa.fornecedor == null}" class="text-muted font-italic">Avulso</em>
@@ -126,6 +126,8 @@
                                         <span class="badge" th:classappend="${despesa.categoria.tipo.name() == 'PROVISAO' ? 'badge-info' : 'badge-warning'}" th:text="${despesa.categoria.descricao}"></span>
                                     </td>
                                     <td class="text-danger font-weight-bold text-money" th:text="'R$ ' + ${#numbers.formatDecimal(despesa.valor, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <td><span class="badge bg-success shadow-sm"><i class="fas fa-check mr-1"></i>Pago</span></td>
+                                    <td class="text-muted text-sm" th:text="${despesa.descricao ?: '-'}"></td>
                                     <td class="text-nowrap">
                                         <div th:if="${!mesTrancado}">
                                             <a th:href="@{/despesas/excluir/{id}(id=${despesa.id})}" class="btn btn-xs btn-outline-danger" title="Excluir" onclick="return confirm('Tem certeza?');">
@@ -136,7 +138,7 @@
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(despesas)}">
-                                    <td colspan="8" class="text-center text-muted p-5">Nenhum pagamento registrado neste mês.</td>
+                                    <td colspan="9" class="text-center text-muted p-5">Nenhum pagamento registrado neste mês.</td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -149,16 +151,181 @@
     <footer th:replace="~{fragments/geral :: footer}"></footer>
 </div>
 
+<!-- MODAL: NOVA CATEGORIA RÁPIDA -->
+<div class="modal fade" id="modal-nova-categoria" style="z-index: 1060;">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form th:action="@{/categorias/salvar}" method="POST">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-tags mr-2"></i>Nova Categoria</h5>
+                    <button type="button" class="close text-dark" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="form-group">
+                        <label class="text-xs text-muted text-uppercase font-weight-bold">Nome da Categoria</label>
+                        <input type="text" name="descricao" class="form-control font-weight-bold text-dark" placeholder="Ex: Manutenção..." required>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="text-xs text-muted text-uppercase font-weight-bold">Classificação</label>
+                        <select name="tipo" class="form-control font-weight-bold text-dark" required>
+                            <option value="">Selecione...</option>
+                            <option th:each="tipo : ${tiposCategoria}" th:value="${tipo}" th:text="${tipo.name() == 'PROVISAO' ? 'Provisão (Caixinha)' : 'Custo Variável / Fixo'}"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between border-0 bg-light">
+                    <button type="button" class="btn btn-sm btn-default font-weight-bold shadow-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-warning font-weight-bold shadow-sm">Cadastrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NOVA DESPESA (DESIGN MODERNO) -->
+<div class="modal fade" id="modal-nova-despesa">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <form th:action="@{/despesas/salvar}" method="POST">
+
+                <!-- CABEÇALHO MODAL -->
+                <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #343a40 0%, #1d2124 100%);">
+                    <h4 class="modal-title font-weight-bold"><i class="fas fa-file-invoice-dollar text-success mr-2"></i>Lançar Saída</h4>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+
+                <div class="modal-body" style="background-color: #f4f6f9;">
+
+                    <!-- SELETOR DE STATUS (MÁGICA DO DIRECIONAMENTO) -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="p-3 rounded border shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-left: 5px solid #17a2b8 !important;">
+                                <label class="text-sm font-weight-bold text-dark"><i class="fas fa-traffic-light text-info mr-1"></i> Para qual tela vai este lançamento?</label>
+                                <select name="status" class="form-control font-weight-bold form-control-lg shadow-sm" style="border: 2px solid #17a2b8;" required>
+                                    <option value="PENDENTE" class="text-danger font-weight-bold">A PAGAR (Aba de Pendências)</option>
+                                    <option value="PAGO" class="text-success font-weight-bold">JÁ PAGO (Aba de Saídas)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PRIMEIRA LINHA -->
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="text-sm font-weight-bold text-dark"><i class="far fa-calendar-alt text-primary mr-1"></i> Data do Pagamento</label>
+                                <input type="date" name="dataLancamento" class="form-control font-weight-bold" style="border: 1px solid #ced4da;" required>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="text-sm font-weight-bold text-dark"><i class="fas fa-comment-dots text-secondary mr-1"></i> Observações</label>
+                                <!-- NOME DO CAMPO AINDA É DESCRICAO PARA O BANCO SALVAR -->
+                                <input type="text" name="descricao" class="form-control" placeholder="(Opcional) Detalhes do lançamento...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEGUNDA LINHA -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-sm font-weight-bold text-dark"><i class="fas fa-building text-warning mr-1"></i> Fornecedor / Beneficiário</label>
+                                <select name="fornecedorId" class="form-control select2" style="width: 100%;">
+                                    <option value="">Nenhum (Despesa Avulsa)</option>
+                                    <option th:each="f : ${fornecedores}" th:value="${f.id}" th:text="${f.nomeEmpresa}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-sm font-weight-bold text-dark"><i class="fas fa-wallet text-success mr-1"></i> Forma de Pagamento</label>
+                                <select name="formaPagamento" class="form-control font-weight-bold" required>
+                                    <!-- A MÁGICA DE PRÉ-SELECIONAR O PIX AQUI -->
+                                    <option th:each="forma : ${formasPagamento}" th:value="${forma}" th:text="${forma}" th:selected="${forma.name() == 'PIX'}"></option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CAIXA DE VALORES -->
+                    <div class="row bg-white p-3 rounded border mx-0 shadow-sm mt-2" style="border-left: 4px solid #28a745 !important;">
+                        <div class="col-md-4">
+                            <div class="form-group mb-0">
+                                <label class="text-sm text-dark font-weight-bold">Nº Doc.</label>
+                                <input type="text" name="numeroDocumento" class="form-control" placeholder="Opcional">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-0">
+                                <label class="text-sm text-dark font-weight-bold">Categoria</label>
+                                <div class="input-group">
+                                    <select name="categoria.id" class="form-control font-weight-bold" required>
+                                        <option value="">Selecione</option>
+                                        <option th:each="cat : ${categorias}"
+                                                th:value="${cat.id}"
+                                                th:text="${cat.descricao + (cat.tipo.name() == 'PROVISAO' ? ' [CAIXINHA]' : ' [CUSTO GERAL]')}"></option>
+                                                th:text="${cat.descricao + (cat.tipo.name() == 'PROVISAO' ? ' [CAIXINHA]' : ' [CUSTO GERAL]')}"></option>
+                                    </select>
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-warning px-2" data-toggle="modal" data-target="#modal-nova-categoria" title="Criar Categoria">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-0">
+                                <label class="text-sm text-danger font-weight-bold">Valor (R$)</label>
+                                <input type="number" step="0.01" name="valor" class="form-control font-weight-bold text-danger form-control" placeholder="0.00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer justify-content-between border-0 bg-white">
+                    <button type="button" class="btn btn-outline-secondary font-weight-bold shadow-sm px-4" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-dark font-weight-bold shadow-sm px-4"><i class="fas fa-save text-success mr-1"></i> Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div th:replace="~{fragments/geral :: scripts}"></div>
 <script th:inline="none">
     $(function () {
+        // MÁGICA DA DATA: Pega o dia de hoje no formato YYYY-MM-DD respeitando o fuso local
+        function obterDataHoje() {
+            let agora = new Date();
+            let ano = agora.getFullYear();
+            let mes = String(agora.getMonth() + 1).padStart(2, '0');
+            let dia = String(agora.getDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+
+        let hoje = obterDataHoje();
+
+        // Injeta a data de hoje assim que a página carrega
+        $('input[name="dataLancamento"]').val(hoje);
+
+        // Inicializa o DataTables
         $("#tabela-despesas").DataTable({
             "responsive": false, "lengthChange": false, "autoWidth": false, "order": [[0, 'desc']],
             "language": { "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json" }
         });
+
+        // Inicializa o Select2
         $('.select2').select2({theme: 'bootstrap4', dropdownParent: $('#modal-nova-despesa')});
+
+        // Controle de Reset do Modal
         $('#modal-nova-despesa').on('hidden.bs.modal', function () {
             $(this).find('form')[0].reset();
+
+            // Força o PIX e a Data de Hoje a voltarem após o reset do formulário
+            $(this).find('select[name="formaPagamento"]').val('PIX').trigger('change');
+            $(this).find('input[name="dataLancamento"]').val(hoje);
             $(this).find('.select2').val('').trigger('change');
         });
     });

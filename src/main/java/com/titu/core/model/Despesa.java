@@ -27,7 +27,6 @@ public class Despesa {
     private String numeroDocumento;
 
     // Coluna: DESCRIÇÃO (Para ele saber do que se trata)
-    @Column(nullable = false)
     private String descricao;
 
     // Coluna: FORNECEDOR / BENEFICIÁRIO
