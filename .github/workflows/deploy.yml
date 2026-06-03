@@ -37,7 +37,23 @@ jobs:
 
       - name: 5. O Golpe Final Nativo (SSH Raiz)
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.HOST }} "cd /home/ubuntu && sudo pkill -f 'java -jar' || true && sleep 3 && DB_URL='${{ secrets.DB_URL }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' nohup java -jar app.jar > log_do_sistema.txt 2>&1 </dev/null &"
+            mkdir -p ~/.ssh
+            echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.HOST }} << 'EOF'
+              cd /home/ubuntu
+            
+              # 1. Derruba a versão antiga
+              sudo pkill -f 'java -jar' || true
+              sleep 3
+            
+              # 2. Exporta as senhas do cofre intactas
+              export DB_URL='${{ secrets.DB_URL }}'
+              export DB_USER='${{ secrets.DB_USER }}'
+              export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
+            
+              # 3. Liga o fogão da cozinha e se solta do terminal
+              nohup java -jar app.jar > log_do_sistema.txt 2>&1 </dev/null &
+              sleep 2
+              exit
+            EOF
