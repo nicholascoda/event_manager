@@ -22,14 +22,14 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
             <div class="mb-2">
                 <h2 class="m-0 font-weight-bold text-dark" style="letter-spacing: -1px;">
-                    <i class="fas fa-history text-success mr-2"></i>Saídas
+                    <i class="fas fa-exclamation-circle text-danger mr-2"></i>Contas a Pagar
                 </h2>
-                <p class="text-muted text-sm mb-0">Lançamentos que <b>já foram pagos</b> e saíram do caixa.</p>
+                <p class="text-muted text-sm mb-0">Lançamentos que <b>ainda estão pendentes</b> de pagamento.</p>
             </div>
 
             <div class="d-flex align-items-center flex-wrap">
-                <form action="/despesas" method="GET" class="form-inline bg-white p-2 rounded-pill shadow-sm border mr-3 mb-2">
-                    <i class="fas fa-calendar-alt mx-3 text-success"></i>
+                <form action="/contas-a-pagar" method="GET" class="form-inline bg-white p-2 rounded-pill shadow-sm border mr-3 mb-2">
+                    <i class="fas fa-calendar-alt mx-3 text-danger"></i>
                     <select name="mes" class="form-control form-control-sm border-0 bg-transparent text-dark font-weight-bold" onchange="this.form.submit()">
                         <option value="1" th:selected="${mesSelecionado == 1}">Janeiro</option>
                         <option value="2" th:selected="${mesSelecionado == 2}">Fevereiro</option>
@@ -49,14 +49,11 @@
                 </form>
 
                 <div class="btn-group shadow-sm mr-3 mb-2">
-                    <a href="/contas-a-pagar" class="btn btn-outline-danger font-weight-bold"><i class="fas fa-exclamation-circle mr-1"></i> A Pagar</a>
-                    <a href="/despesas" class="btn btn-success font-weight-bold active"><i class="fas fa-check-double mr-1"></i> Saídas</a>
+                    <a href="/contas-a-pagar" class="btn btn-danger font-weight-bold active"><i class="fas fa-exclamation-circle mr-1"></i> A Pagar</a>
+                    <a href="/despesas" class="btn btn-outline-success font-weight-bold"><i class="fas fa-check-double mr-1"></i> Saídas</a>
                 </div>
 
-                <div th:if="${mesTrancado}" class="mb-2">
-                    <span class="badge badge-danger p-2 text-md shadow-sm"><i class="fas fa-lock mr-1"></i> Trancado</span>
-                </div>
-                <button th:if="${!mesTrancado}" class="btn btn-dark font-weight-bold shadow-sm rounded-pill px-4 mb-2" data-toggle="modal" data-target="#modal-nova-despesa">
+                <button class="btn btn-dark font-weight-bold shadow-sm rounded-pill px-4 mb-2" data-toggle="modal" data-target="#modal-nova-despesa">
                     <i class="fas fa-plus mr-1"></i> Nova Pendência
                 </button>
             </div>
@@ -64,7 +61,6 @@
 
         <section class="content p-0">
             <div class="container-fluid p-0">
-
                 <div th:if="${mensagemSucesso}" class="alert alert-success alert-dismissible shadow-sm mb-4">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
                     <h5><i class="icon fas fa-check"></i> Sucesso!</h5>
@@ -73,70 +69,50 @@
 
                 <div class="row mb-4">
                     <div class="col-md-6 mb-3">
-                        <div class="card card-modern border-0 shadow-sm p-3 h-100 d-flex flex-row align-items-center justify-content-between">
+                        <div class="card card-modern border-0 shadow-sm p-3 h-100 d-flex flex-row align-items-center justify-content-between" style="border-left: 5px solid #dc3545 !important;">
                             <div>
-                                <p class="text-muted text-xs text-uppercase font-weight-bold mb-1">Total Já Pago</p>
-                                <h3 class="font-weight-bold text-success m-0 text-money" th:text="'R$ ' + ${#numbers.formatDecimal(totalPago, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h3>
+                                <p class="text-muted text-xs text-uppercase font-weight-bold mb-1">Total Pendente (A Pagar)</p>
+                                <h3 class="font-weight-bold text-danger m-0 text-money" th:text="'R$ ' + ${#numbers.formatDecimal(totalPendente, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h3>
                             </div>
-                            <div class="icon-box rounded-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: rgba(40, 167, 69, 0.1); color: #28a745;">
-                                <i class="fas fa-wallet fa-lg"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card card-modern border-0 shadow-sm p-3 h-100 d-flex flex-row align-items-center justify-content-between">
-                            <div>
-                                <p class="text-muted text-xs text-uppercase font-weight-bold mb-1">Qtd Lançamentos</p>
-                                <h3 class="font-weight-bold text-dark m-0 text-money" th:text="${totalLancamentos} + ' registros'">0</h3>
-                            </div>
-                            <div class="icon-box rounded-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: rgba(23, 162, 184, 0.1); color: #17a2b8;">
-                                <i class="fas fa-list-ol fa-lg"></i>
+                            <div class="icon-box rounded-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                                <i class="fas fa-exclamation-triangle fa-lg"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="card shadow-sm border-0" style="border-radius: 12px; border-top: 4px solid #dc3545 !important; overflow: hidden;">
                     <div class="card-body p-0">
                         <div class="table-responsive text-nowrap">
-                            <table id="tabela-despesas" class="table table-hover table-valign-middle mb-0 text-sm">
+                            <table class="table table-hover table-valign-middle mb-0 text-sm">
                                 <thead class="bg-light text-muted">
                                 <tr>
-                                    <th>Data Pgto</th>
-                                    <th>Doc</th>
+                                    <th>Vencimento</th>
                                     <th>Descrição</th>
                                     <th>Favorecido</th>
-                                    <th>Forma</th>
                                     <th>Categoria</th>
-                                    <th>Valor</th>
-                                    <th>Ações</th>
+                                    <th>Valor Pendente</th>
+                                    <th class="text-center">Ação</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="despesa : ${despesas}">
-                                    <td class="font-weight-bold text-success"><i class="far fa-calendar-check mr-1"></i><span th:text="${despesa.dataPagamento != null ? #temporals.format(despesa.dataPagamento, 'dd/MM/yyyy') : #temporals.format(despesa.dataLancamento, 'dd/MM/yyyy')}"></span></td>
-                                    <td th:text="${despesa.numeroDocumento ?: '-'}"></td>
+                                <tr th:each="despesa : ${despesas}" style="background-color: rgba(220, 53, 69, 0.03);">
+                                    <td class="font-weight-bold text-danger"><i class="far fa-calendar-alt mr-1"></i> <span th:text="${#temporals.format(despesa.dataLancamento, 'dd/MM/yyyy')}"></span></td>
                                     <td class="font-weight-bold text-dark" th:text="${despesa.descricao}"></td>
-                                    <td>
-                                        <span th:if="${despesa.fornecedor != null}" th:text="${despesa.fornecedor.nomeEmpresa}"></span>
-                                        <em th:if="${despesa.fornecedor == null}" class="text-muted font-italic">Avulso</em>
-                                    </td>
-                                    <td th:text="${despesa.formaPagamento}"></td>
-                                    <td>
-                                        <span class="badge" th:classappend="${despesa.categoria.tipo.name() == 'PROVISAO' ? 'badge-info' : 'badge-warning'}" th:text="${despesa.categoria.descricao}"></span>
-                                    </td>
+                                    <td th:text="${despesa.fornecedor != null ? despesa.fornecedor.nomeEmpresa : 'Avulso'}"></td>
+                                    <td><span class="badge badge-warning" th:text="${despesa.categoria.descricao}"></span></td>
                                     <td class="text-danger font-weight-bold text-money" th:text="'R$ ' + ${#numbers.formatDecimal(despesa.valor, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="text-nowrap">
-                                        <div th:if="${!mesTrancado}">
-                                            <a th:href="@{/despesas/excluir/{id}(id=${despesa.id})}" class="btn btn-xs btn-outline-danger" title="Excluir" onclick="return confirm('Tem certeza?');">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </div>
-                                        <div th:if="${mesTrancado}"><i class="fas fa-lock text-muted"></i></div>
+                                    <td class="text-center">
+                                        <a th:href="@{/despesas/pagar/{id}(id=${despesa.id})}" class="btn btn-sm btn-success shadow-sm font-weight-bold rounded-pill px-3" onclick="return confirm('Dinheiro saiu do caixa? Confirmar pagamento?');">
+                                            <i class="fas fa-check-circle mr-1"></i> Dar Baixa
+                                        </a>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(despesas)}">
-                                    <td colspan="8" class="text-center text-muted p-5">Nenhum pagamento registrado neste mês.</td>
+                                    <td colspan="6" class="text-center text-muted p-5">
+                                        <i class="fas fa-glass-cheers fa-3x text-light mb-3"></i><br>
+                                        Nenhuma conta a pagar pendente neste mês! Caixa limpo!
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -152,10 +128,6 @@
 <div th:replace="~{fragments/geral :: scripts}"></div>
 <script th:inline="none">
     $(function () {
-        $("#tabela-despesas").DataTable({
-            "responsive": false, "lengthChange": false, "autoWidth": false, "order": [[0, 'desc']],
-            "language": { "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json" }
-        });
         $('.select2').select2({theme: 'bootstrap4', dropdownParent: $('#modal-nova-despesa')});
         $('#modal-nova-despesa').on('hidden.bs.modal', function () {
             $(this).find('form')[0].reset();

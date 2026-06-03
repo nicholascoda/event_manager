@@ -51,6 +51,9 @@
             <a href="/eventos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/eventos') ? 'active top-menu-active font-weight-bold' : ''}">Diário</a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
+            <a href="/contas-a-pagar" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/contas-a-pagar') ? 'active top-menu-active font-weight-bold' : ''}">A Pagar</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
             <a href="/despesas" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/despesas') ? 'active top-menu-active font-weight-bold' : ''}">Saídas</a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
@@ -101,15 +104,24 @@
                             <p>Dashboard</p>
                         </a>
                     </li>
+
                     <li class="nav-item">
                         <a href="/eventos" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/eventos') ? 'active' : ''}">
                             <i class="nav-icon fas fa-calendar-check"></i>
                             <p>Diário</p>
                         </a>
                     </li>
+
+                    <li class="nav-item">
+                        <a href="/contas-a-pagar" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/contas-a-pagar') ? 'active' : ''}">
+                            <i class="nav-icon fas fa-exclamation-circle text-danger"></i>
+                            <p>A Pagar</p>
+                        </a>
+                    </li>
+
                     <li class="nav-item">
                         <a href="/despesas" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/despesas') ? 'active' : ''}">
-                            <i class="nav-icon fas fa-arrow-circle-down text-danger"></i>
+                            <i class="nav-icon fas fa-history text-success"></i>
                             <p>Saídas</p>
                         </a>
                     </li>
@@ -119,6 +131,7 @@
                             <p class="font-weight-bold">Caixinhas</p>
                         </a>
                     </li>
+
                     <li class="nav-item">
                         <a href="/clientes" class="nav-link" th:classappend="${currentUri != null and currentUri.startsWith('/clientes') ? 'active' : ''}">
                             <i class="nav-icon fas fa-users"></i>

@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,17 +31,23 @@ public class CaixinhaService {
         BigDecimal provTaxa = BigDecimal.ZERO;
 
         for (Evento e : eventos) {
-            if (e.getProvisaoSocios() != null) provSocios = provSocios.add(e.getProvisaoSocios());
-            if (e.getProvisaoCustoBar() != null) provCustoBar = provCustoBar.add(e.getProvisaoCustoBar());
-            if (e.getProvisaoDecoracao() != null) provDecoracao = provDecoracao.add(e.getProvisaoDecoracao());
-            if (e.getProvisaoTaxa() != null) provTaxa = provTaxa.add(e.getProvisaoTaxa());
+            // Pega a gaveta do JSON (se não for nula)
+            Map<String, BigDecimal> custos = e.getCustosDetalhados();
+
+            if (custos != null) {
+                // Abre a gaveta e procura a chave. Se não achar, devolve ZERO.
+                provSocios = provSocios.add(custos.getOrDefault("provisaoSocios", BigDecimal.ZERO));
+                provCustoBar = provCustoBar.add(custos.getOrDefault("provisaoCustoBar", BigDecimal.ZERO));
+                provDecoracao = provDecoracao.add(custos.getOrDefault("provisaoDecoracao", BigDecimal.ZERO));
+                provTaxa = provTaxa.add(custos.getOrDefault("provisaoTaxa", BigDecimal.ZERO));
+            }
         }
 
         // 2. Define as datas do mês para a query blindada
         LocalDate inicioMes = LocalDate.of(ano, mes, 1);
         LocalDate fimMes = YearMonth.of(ano, mes).atEndOfMonth();
 
-        // 3. Monta as caixinhas (ATENÇÃO: O primeiro texto DEVE ser igual ao nome da Categoria salva no seu banco!)
+        // 3. Monta as caixinhas mantendo os seus ícones e cores originais da tela
         List<CaixinhaDTO> caixinhas = new ArrayList<>();
         caixinhas.add(montarDTO("Sócios", "fas fa-user-tie", "bg-primary", provSocios, inicioMes, fimMes));
         caixinhas.add(montarDTO("Custo Bar", "fas fa-beer", "bg-warning text-dark", provCustoBar, inicioMes, fimMes));

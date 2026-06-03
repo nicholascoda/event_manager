@@ -15,6 +15,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -23,17 +26,17 @@ public class WebController {
     private final ClienteService clienteService;
     private final DespesaService despesaService;
     private final CategoriaService categoriaService;
-    private final EventoService eventoService; // <-- ADICIONE AQUI
+    private final EventoService eventoService;
     private final EventoRepository eventoRepository;
     private final TipoEventoService tipoEventoService;
     private final FechamentoService fechamentoService;
-
+    private final DashboardService dashboardService;
+    private final ColunaDiarioService colunaDiarioService;
 
     // =========================================================================
     // ROTAS PRINCIPAIS & DASHBOARD
     // =========================================================================
 
-    // Guarda de Trânsito! Se entrar no site puro, joga pro Dashboard
     @GetMapping("/")
     public String redirecionarRaiz() {
         return "redirect:/dashboard";
@@ -89,7 +92,6 @@ public class WebController {
     @GetMapping("/clientes/{id}/detalhes")
     public String detalhesCliente(@PathVariable Long id, Model model) {
         model.addAttribute("cliente", clienteService.buscarPorId(id));
-        // No futuro, podemos listar os Eventos que esse parceiro trabalhou aqui
         return "cliente-detalhes";
     }
 
@@ -97,52 +99,84 @@ public class WebController {
     // ROTAS DE DESPESAS (ABA 3 DA PLANILHA)
     // =========================================================================
 
+    // ROTA 1: A ABA HISTÓRICO DE SAÍDAS (Status = PAGO)
     @GetMapping("/despesas")
-    public String paginaDespesas(@RequestParam(required = false) Integer mes,
-                                 @RequestParam(required = false) Integer ano,
-                                 Model model) {
-
-        // Se entrar sem filtro, puxa o mês atual
+    public String paginaDespesasHistorico(@RequestParam(required = false) Integer mes,
+                                          @RequestParam(required = false) Integer ano,
+                                          Model model) {
         if (mes == null || ano == null) {
             java.time.LocalDate hoje = java.time.LocalDate.now();
             mes = hoje.getMonthValue();
             ano = hoje.getYear();
         }
 
-        // 1. Guardamos a lista em uma variável primeiro
-        java.util.List<Despesa> despesasDoMes = despesaService.listarPorMesEAno(ano, mes);
+        // Busca TUDO do mês para a matemática do Dashboard
+        List<Despesa> todasDespesasDoMes = despesaService.listarPorMesEAno(ano, mes);
 
-        // 2. Fazemos a matemática (Streams do Java)
-        java.math.BigDecimal totalGeral = despesasDoMes.stream()
+        // Separa APENAS o que foi pago para mostrar na tabela desta tela
+        List<Despesa> despesasPagas = todasDespesasDoMes.stream()
+                .filter(d -> d.getStatus().name().equals("PAGO"))
+                .toList();
+
+        BigDecimal totalPago = despesasPagas.stream()
                 .map(Despesa::getValor)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        java.math.BigDecimal totalPendente = despesasDoMes.stream()
-                .filter(d -> d.getStatus().name().equals("PENDENTE"))
-                .map(Despesa::getValor)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        model.addAttribute("despesas", despesasPagas);
+        model.addAttribute("totalPago", totalPago);
+        model.addAttribute("totalLancamentos", despesasPagas.size());
 
-        int totalLancamentos = despesasDoMes.size();
-
-        // 3. Enviamos a lista E os totais mastigados para a tela
-        model.addAttribute("despesas", despesasDoMes);
-        model.addAttribute("totalGeral", totalGeral);
-        model.addAttribute("totalPendente", totalPendente);
-        model.addAttribute("totalLancamentos", totalLancamentos);
-
-        // 4. O resto do seu código continua idêntico!
+        // Dados para o modal de lançamento
         model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
         model.addAttribute("categorias", categoriaService.listarTodas());
         model.addAttribute("formasPagamento", com.titu.core.model.FormaPagamento.values());
         model.addAttribute("tiposCategoria", com.titu.core.model.TipoCategoria.values());
 
-        // Trava do Mês (O Cadeado de Segurança)
         model.addAttribute("mesTrancado", fechamentoService.isMesTrancado(mes, ano));
         model.addAttribute("mesSelecionado", mes);
         model.addAttribute("anoSelecionado", ano);
 
-        return "despesas";
+        return "despesas"; // Aponta para o arquivo original que limparemos
     }
+
+    // ROTA 2: A NOVA ABA DE CONTAS A PAGAR (Status = PENDENTE)
+    @GetMapping("/contas-a-pagar")
+    public String paginaContasAPagar(@RequestParam(required = false) Integer mes,
+                                     @RequestParam(required = false) Integer ano,
+                                     Model model) {
+        if (mes == null || ano == null) {
+            java.time.LocalDate hoje = java.time.LocalDate.now();
+            mes = hoje.getMonthValue();
+            ano = hoje.getYear();
+        }
+
+        List<Despesa> todasDespesasDoMes = despesaService.listarPorMesEAno(ano, mes);
+
+        List<Despesa> despesasPendentes = todasDespesasDoMes.stream()
+                .filter(d -> d.getStatus().name().equals("PENDENTE"))
+                .toList();
+
+        BigDecimal totalPendente = despesasPendentes.stream()
+                .map(Despesa::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("despesas", despesasPendentes);
+        model.addAttribute("totalPendente", totalPendente);
+        model.addAttribute("totalLancamentos", despesasPendentes.size());
+
+        // Dados para o modal (mesmo da aba de saídas)
+        model.addAttribute("fornecedores", clienteService.listarSomenteFornecedores());
+        model.addAttribute("categorias", categoriaService.listarTodas());
+        model.addAttribute("formasPagamento", com.titu.core.model.FormaPagamento.values());
+        model.addAttribute("tiposCategoria", com.titu.core.model.TipoCategoria.values());
+
+        model.addAttribute("mesSelecionado", mes);
+        model.addAttribute("anoSelecionado", ano);
+
+        return "contas-a-pagar"; // Aponta para o NOVO arquivo
+    }
+
+
 
     @PostMapping("/categorias/salvar")
     public String salvarCategoria(com.titu.core.model.Categoria categoria, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -153,7 +187,6 @@ public class WebController {
             redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao criar categoria: " + e.getMessage());
         }
 
-        // Volta pra tela de despesas (ou de onde ele estiver chamando)
         String urlAnterior = request.getHeader("Referer");
         return (urlAnterior != null) ? "redirect:" + urlAnterior : "redirect:/despesas";
     }
@@ -175,12 +208,11 @@ public class WebController {
     public String darBaixaDespesa(@PathVariable Long id, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         try {
             despesaService.darBaixa(id);
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Despesa marcada como PAGA! Dinheiro saiu do caixa.");
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Despesa marcada como PAGA! Movida para o Histórico de Saídas.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao processar pagamento.");
         }
-        String urlAnterior = request.getHeader("Referer");
-        return (urlAnterior != null) ? "redirect:" + urlAnterior : "redirect:/despesas";
+        return "redirect:/contas-a-pagar"; // Volta direto pra aba pendente!
     }
 
     @GetMapping("/despesas/excluir/{id}")
@@ -203,19 +235,21 @@ public class WebController {
                                @RequestParam(required = false) Integer ano,
                                Model model) {
 
-        // Se vier vazio, pega a data de hoje
         if (mes == null || ano == null) {
             java.time.LocalDate hoje = java.time.LocalDate.now();
             mes = hoje.getMonthValue();
             ano = hoje.getYear();
         }
 
-        // Busca só os eventos do mês filtrado
+        // Puxa as colunas do Cérebro
+        List<com.titu.core.model.ColunaDiario> colunasDinamicas = colunaDiarioService.listarTodas();
+
         model.addAttribute("eventos", eventoService.listarPorMesEAno(ano, mes));
-        // Dentro do metodo que abre a página do Diário (ex: /diario)
+        model.addAttribute("colunasMapeadas", colunasDinamicas); // Manda a lista real pro HTML
+        model.addAttribute("quantidadeColunas", colunasDinamicas.size());
+
         model.addAttribute("mesTrancado", fechamentoService.isMesTrancado(mes, ano));
         model.addAttribute("tiposEvento", tipoEventoService.listarTodos());
-        // Devolve pro HTML saber qual mês/ano deixar selecionado no select
         model.addAttribute("mesSelecionado", mes);
         model.addAttribute("anoSelecionado", ano);
 
@@ -236,7 +270,7 @@ public class WebController {
     }
 
     @PostMapping("/eventos/salvar")
-    public String salvarEvento(com.titu.core.model.Evento evento, RedirectAttributes redirectAttributes) {
+    public String salvarEvento(Evento evento, RedirectAttributes redirectAttributes) {
         try {
             eventoService.salvar(evento);
             redirectAttributes.addFlashAttribute("mensagemSucesso", "Evento registrado com sucesso!");
@@ -270,40 +304,32 @@ public class WebController {
 
     @PostMapping("/eventos/atualizar-campo")
     @ResponseBody
-    public java.util.Map<String, Object> atualizarCampoAjax(@RequestParam Long id, @RequestParam String campo, @RequestParam String valor) {
-        com.titu.core.model.Evento evento = eventoRepository.findById(id).orElseThrow();
+    public Map<String, Object> atualizarCampoAjax(@RequestParam Long id, @RequestParam String campo, @RequestParam String valor) {
+        Evento evento = eventoRepository.findById(id).orElseThrow();
 
         if (campo.equals("tipoEvento")) {
-            // Busca o objeto da tabela nova pelo ID que veio do JavaScript
             com.titu.core.model.TipoEvento tipo = tipoEventoService.listarTodos().stream()
                     .filter(t -> t.getId().toString().equals(valor))
                     .findFirst().orElseThrow();
             evento.setTipoEvento(tipo);
         } else {
-            // Converte o texto do JS para dinheiro no Java
-            java.math.BigDecimal num = new java.math.BigDecimal(valor.isEmpty() ? "0" : valor.replace(",", "."));
-            switch(campo) {
-                case "receitaBar": evento.setReceitaBar(num); break;
-                case "custoProblemas": evento.setCustoProblemas(num); break;
-                case "custoDiarias": evento.setCustoDiarias(num); break;
-                case "custoPromoters": evento.setCustoPromoters(num); break;
-                case "custoDjPagode": evento.setCustoDjPagode(num); break;
-                case "custoSeguranca": evento.setCustoSeguranca(num); break;
-                case "custoSom": evento.setCustoSom(num); break;
-                case "provisaoCustoBar": evento.setProvisaoCustoBar(num); break;
-                case "provisaoSocios": evento.setProvisaoSocios(num); break;
-                case "provisaoDecoracao": evento.setProvisaoDecoracao(num); break;
-                case "provisaoTaxa": evento.setProvisaoTaxa(num); break;
-                // Dentro do seu switch(campo):
-                case "custoFixo": evento.setCustoFixo(num); break; // ADICIONE ESTA LINHA
+            BigDecimal num = new BigDecimal(valor.isEmpty() ? "0" : valor.replace(",", "."));
 
+            if (campo.equals("receitaBar")) {
+                evento.setReceitaBar(num);
+            } else {
+                // MÁGICA DO JSONB: Se não for a receita, cai automaticamente como custo dinâmico!
+                if (evento.getCustosDetalhados() == null) {
+                    evento.setCustosDetalhados(new HashMap<>());
+                }
+                evento.getCustosDetalhados().put(campo, num);
             }
         }
 
-        eventoService.salvar(evento); // Salva as mudanças no banco
+        eventoService.salvar(evento);
 
-        // Devolve os totais calculados na hora para o navegador!
-        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        // Devolve os totais calculados dinamicamente na hora para o JavaScript atualizar a tela
+        Map<String, Object> response = new HashMap<>();
         response.put("totalCustos", evento.getTotalCustos());
         response.put("lucroDoDia", evento.getLucroDoDia());
         response.put("margem", evento.getMargem());
@@ -332,16 +358,11 @@ public class WebController {
         return "redirect:/eventos";
     }
 
-    // Injete o serviço lá no topo da classe
-    private final com.titu.core.service.DashboardService dashboardService;
-
-    // --- ROTA DO DASHBOARD ---
     @GetMapping("/dashboard")
     public String paginaDashboard(@RequestParam(required = false) Integer mes,
                                   @RequestParam(required = false) Integer ano,
                                   Model model) {
 
-        // Se ele clicar no menu lateral sem filtro, joga pro mês/ano atual
         if (mes == null || ano == null) {
             java.time.LocalDate hoje = java.time.LocalDate.now();
             mes = hoje.getMonthValue();
@@ -364,7 +385,53 @@ public class WebController {
         model.addAttribute("tiposEvento", tipoEventoService.listarTodos());
         model.addAttribute("categorias", categoriaService.listarTodas());
         model.addAttribute("tiposCategoria", com.titu.core.model.TipoCategoria.values());
+
+        // Puxa o Molde do Diário para a tela
+        model.addAttribute("colunasDiario", colunaDiarioService.listarTodas());
+
         return "configuracoes";
+    }
+
+    @PostMapping("/colunas-diario/salvar-config")
+    public String salvarColunaConfig(com.titu.core.model.ColunaDiario colunaInput, RedirectAttributes redirectAttributes) {
+        try {
+            if (colunaInput.getId() != null) {
+                // EDIÇÃO: Protege a chave do banco e o tipo, muda só o nome visual!
+                com.titu.core.model.ColunaDiario existente = colunaDiarioService.buscarPorId(colunaInput.getId());
+                existente.setNomeVisual(colunaInput.getNomeVisual());
+                colunaDiarioService.salvar(existente);
+                redirectAttributes.addFlashAttribute("mensagemSucesso", "Nome da coluna atualizado!");
+            } else {
+                // CRIAÇÃO NOVA PELO PAINEL
+                String baseKey = java.text.Normalizer.normalize(colunaInput.getNomeVisual(), java.text.Normalizer.Form.NFD)
+                        .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "")
+                        .replaceAll("[^a-zA-Z0-9 ]", "");
+                String[] words = baseKey.split(" ");
+                StringBuilder keyBuilder = new StringBuilder(words[0].toLowerCase());
+                for (int i = 1; i < words.length; i++) {
+                    if (words[i].length() > 0) {
+                        keyBuilder.append(words[i].substring(0, 1).toUpperCase()).append(words[i].substring(1).toLowerCase());
+                    }
+                }
+                colunaInput.setChaveBanco(keyBuilder.toString() + colunaInput.getTipo());
+                colunaDiarioService.salvar(colunaInput);
+                redirectAttributes.addFlashAttribute("mensagemSucesso", "Nova coluna adicionada ao Molde!");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro: " + e.getMessage());
+        }
+        return "redirect:/configuracoes";
+    }
+
+    @GetMapping("/colunas-diario/excluir/{id}")
+    public String excluirColunaConfig(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            colunaDiarioService.excluir(id);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Coluna removida do Molde!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensagemErro", "Erro ao excluir coluna.");
+        }
+        return "redirect:/configuracoes";
     }
 
     @GetMapping("/tipos-evento/excluir/{id}")
@@ -392,26 +459,54 @@ public class WebController {
     @PostMapping("/eventos/limpar-linha")
     @ResponseBody
     public ResponseEntity<?> limparLinha(@RequestParam Long id) {
-        // 1. Usa o nome correto (eventoService) e o novo método (buscarPorId)
         Evento evento = eventoService.buscarPorId(id);
 
-        // 2. Zera tudo
+        // Zera o valor fixo
         evento.setReceitaBar(BigDecimal.ZERO);
-        evento.setProvisaoCustoBar(BigDecimal.ZERO);
-        evento.setCustoProblemas(BigDecimal.ZERO);
-        evento.setCustoDiarias(BigDecimal.ZERO);
-        evento.setCustoPromoters(BigDecimal.ZERO);
-        evento.setCustoDjPagode(BigDecimal.ZERO);
-        evento.setCustoSeguranca(BigDecimal.ZERO);
-        evento.setCustoSom(BigDecimal.ZERO);
-        evento.setProvisaoSocios(BigDecimal.ZERO);
-        evento.setProvisaoDecoracao(BigDecimal.ZERO);
-        evento.setProvisaoTaxa(BigDecimal.ZERO);
-        evento.setCustoFixo(BigDecimal.ZERO);
 
-        // 3. Salva e o service cuida de tudo
+        // Zera a gaveta de custos inteira com um único comando elegante!
+        if (evento.getCustosDetalhados() != null) {
+            evento.getCustosDetalhados().clear();
+        } else {
+            evento.setCustosDetalhados(new HashMap<>());
+        }
+
         eventoService.salvar(evento);
+        return ResponseEntity.ok().build();
+    }
 
+
+    @PostMapping("/colunas-diario/salvar")
+    @ResponseBody
+    public ResponseEntity<?> salvarNovaColuna(@RequestParam String nomeVisual, @RequestParam String tipo) {
+        // Mágica para criar a chave do banco (ex: "Custo Bolo" vira "custoBolo")
+        String baseKey = java.text.Normalizer.normalize(nomeVisual, java.text.Normalizer.Form.NFD)
+                .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "")
+                .replaceAll("[^a-zA-Z0-9 ]", "");
+        String[] words = baseKey.split(" ");
+        StringBuilder keyBuilder = new StringBuilder(words[0].toLowerCase());
+        for (int i = 1; i < words.length; i++) {
+            if (words[i].length() > 0) {
+                keyBuilder.append(words[i].substring(0, 1).toUpperCase()).append(words[i].substring(1).toLowerCase());
+            }
+        }
+
+        com.titu.core.model.ColunaDiario nova = com.titu.core.model.ColunaDiario.builder()
+                .nomeVisual(nomeVisual)
+                .chaveBanco(keyBuilder.toString() + tipo)
+                .tipo(tipo)
+                .build();
+
+        colunaDiarioService.salvar(nova);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/colunas-diario/editar")
+    @ResponseBody
+    public ResponseEntity<?> editarNomeColuna(@RequestParam Long id, @RequestParam String novoNome) {
+        com.titu.core.model.ColunaDiario col = colunaDiarioService.buscarPorId(id);
+        col.setNomeVisual(novoNome); // Edita SÓ O NOME visual
+        colunaDiarioService.salvar(col);
         return ResponseEntity.ok().build();
     }
 

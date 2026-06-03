@@ -2,9 +2,14 @@ package com.titu.core.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @Entity
 @Table(name = "eventos")
@@ -26,94 +31,53 @@ public class Evento {
     private TipoEvento tipoEvento;
 
     // ==========================================
-    // 💰 ENTRADAS
+    // 💰 ENTRADAS (FIXO)
     // ==========================================
     @Column(nullable = false, precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal receitaBar = BigDecimal.ZERO;
 
     // ==========================================
-    // 🔴 CUSTOS DIRETOS [NA HORA] (Sai do caixa no dia)
+    // 🔴 CUSTOS DIRETOS E PROVISÕES [DINÂMICO - JSONB]
     // ==========================================
-    @Column(precision = 19, scale = 2)
+    // O Hibernate 6 vai pegar esse Map e transformar nativamente numa coluna JSONB no PostgreSQL!
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     @Builder.Default
-    private BigDecimal custoProblemas = BigDecimal.ZERO;
-
-    @Column(precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal custoDiarias = BigDecimal.ZERO; // Diárias + Compras
-
-    @Builder.Default
-    private BigDecimal custoPromoters = BigDecimal.ZERO;
-
-    @Column(precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal custoDjPagode = BigDecimal.ZERO; // Podemos chamar de Atrações também
-
-    @Column(precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal custoSeguranca = BigDecimal.ZERO;
-
-    @Builder.Default
-    private BigDecimal custoSom = BigDecimal.ZERO;
-
-    @Column(nullable = false, precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal custoFixo = BigDecimal.ZERO;
-
-
-    // ==========================================
-    // 📦 PROVISÕES [CAIXINHAS] (Guarda para pagar depois)
-    // ==========================================
-    @Column(precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal provisaoCustoBar = BigDecimal.ZERO;
-
-    @Column(precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal provisaoSocios = BigDecimal.ZERO;
-
-    @Builder.Default
-    private BigDecimal provisaoDecoracao = BigDecimal.ZERO;
-
-    @Column(precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal provisaoTaxa = BigDecimal.ZERO;
+    private Map<String, BigDecimal> custosDetalhados = new HashMap<>();
 
     // ==========================================
     // 🧠 MATEMÁTICA EM TEMPO REAL (Não salva no banco)
     // ==========================================
 
-    // Calcula a soma de TODOS os custos (Na Hora + Provisão)
-    @Column(precision = 19, scale = 2)
+    // Calcula a soma de TODOS os custos dinâmicos que o cliente inventar dentro do JSON
     @Transient
     public BigDecimal getTotalCustos() {
-        return custoProblemas.add(custoDiarias).add(custoPromoters)
-                .add(custoDjPagode).add(custoSeguranca).add(custoSom)
-                .add(provisaoCustoBar).add(provisaoSocios)
-                .add(provisaoDecoracao).add(provisaoTaxa)
-                .add(custoFixo);
+        if (custosDetalhados == null || custosDetalhados.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        // Pega todos os valores do dicionário e soma tudo automaticamente
+        return custosDetalhados.values().stream()
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // Calcula o Lucro do Dia (Receita - Total de Custos)
-    @Column(precision = 19, scale = 2)
     @Transient
     public BigDecimal getLucroDoDia() {
         return receitaBar.subtract(getTotalCustos());
     }
 
     // Calcula a Margem Bruta em Porcentagem %
-    @Column(precision = 19, scale = 2)
     @Transient
     public BigDecimal getMargem() {
         if (receitaBar.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
-        // (Lucro / Receita) * 100
         return getLucroDoDia().divide(receitaBar, 4, java.math.RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
     }
 
-    // Descobre o dia da semana sozinho para o JavaScript poder filtrar as opções
+    // Descobre o dia da semana sozinho
     @Transient
     public String getDiaDaSemana() {
         return switch (dataEvento.getDayOfWeek()) {
@@ -125,6 +89,15 @@ public class Evento {
             case SATURDAY -> "Sábado";
             case SUNDAY -> "Domingo";
         };
+    }
+
+    // Puxa o valor do JSON pro HTML não quebrar
+    @Transient
+    public BigDecimal getCustoDinamico(String chave) {
+        if (custosDetalhados == null || custosDetalhados.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return custosDetalhados.getOrDefault(chave, BigDecimal.ZERO);
     }
 
 }

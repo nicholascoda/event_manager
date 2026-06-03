@@ -36,7 +36,6 @@ public class Cliente {
 
     @NotBlank(message = "E-mail é obrigatório")
     @Email(message = "E-mail inválido")
-    @Column(nullable = false)
     private String email;
 
     @NotBlank(message = "Telefone/WhatsApp é obrigatório")

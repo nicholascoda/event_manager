@@ -130,27 +130,30 @@
                                 <tr>
                                     <th class="th-identificacao text-center" colspan="2">IDENTIFICAÇÃO</th>
                                     <th class="th-receita text-center">RECEITA</th>
-                                    <th class="th-custos text-center" colspan="11">CUSTOS DIRETOS (Saem na hora ou provisionados)</th>
+                                    <th class="th-custos text-center" id="header-custos-dinamicos" th:colspan="${quantidadeColunas}">
+                                        CUSTOS DIRETOS E PROVISÕES
+                                        <button type="button" class="btn btn-xs btn-light text-danger font-weight-bold shadow-sm ml-2" onclick="adicionarColuna()" title="Nova Coluna"><i class="fas fa-plus"></i></button>
+                                    </th>
                                     <th class="th-resultado text-center" colspan="3">RESULTADO</th>
                                     <th class="th-identificacao text-center" rowspan="2">Ações</th>
                                 </tr>
-                                <tr class="text-center">
+                                <tr class="text-center" id="linha-cabecalhos">
                                     <th class="th-identificacao">DATA</th>
                                     <th class="th-identificacao">EVENTO</th>
                                     <th class="th-receita">BAR (Receita)</th>
 
-                                    <th class="th-custos">Custo Bar [prov]</th>
-                                    <th class="th-custos">Custo Fixo [dia]</th> <th class="th-custos">Problemas [na hora]</th>
-                                    <th class="th-custos">Diárias/Comp. [na hora]</th>
-                                    <th class="th-custos">Promoters [na hora]</th>
-                                    <th class="th-custos">DJ/Pagode [na hora]</th>
-                                    <th class="th-custos">Segurança [na hora]</th>
-                                    <th class="th-custos">Som [na hora]</th>
-                                    <th class="th-custos">Sócios [prov]</th>
-                                    <th class="th-custos">Decoração [prov]</th>
-                                    <th class="th-custos">Taxa [prov]</th>
+                                    <!-- LAÇO THYMELEAF: Cabeçalhos com Lápis de Edição -->
+                                    <th th:each="col : ${colunasMapeadas}" class="th-custos">
+                                        <span th:text="${col.nomeVisual} + ' ' + ${col.tipo == '_prov' ? '[prov]' : (col.tipo == '_hora' ? '[na hora]' : '[dia]')}"></span>
 
-                                    <th class="th-resultado">Total Custos</th>
+                                        <button class="btn btn-xs btn-link text-white p-0 ml-1 btn-editar-coluna"
+                                                th:attr="data-id=${col.id}, data-nome=${col.nomeVisual}"
+                                                title="Renomear Coluna">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </th>
+
+                                    <th class="th-resultado" id="th-resultado-total">Total Custos</th>
                                     <th class="th-resultado">LUCRO DO DIA</th>
                                     <th class="th-resultado">Margem</th>
                                 </tr>
@@ -168,54 +171,33 @@
                                         th:attr="data-id=${evento.id}, data-campo='receitaBar', data-valor=${evento.receitaBar}"
                                         th:text="'R$ ' + ${#numbers.formatDecimal(evento.receitaBar, 1, 'POINT', 2, 'COMMA')}"></td>
 
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoCustoBar', data-valor=${evento.provisaoCustoBar}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoCustoBar, 1, 'POINT', 2, 'COMMA')}"></td>
-
-                                    <td class="editavel font-weight-bold"
-                                        th:attr="data-id=${evento.id}, data-campo='custoFixo', data-valor=${evento.custoFixo}"
-                                        th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoFixo, 1, 'POINT', 2, 'COMMA')}"></td>
-
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoProblemas', data-valor=${evento.custoProblemas}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoProblemas, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoDiarias', data-valor=${evento.custoDiarias}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoDiarias, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoPromoters', data-valor=${evento.custoPromoters}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoPromoters, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoDjPagode', data-valor=${evento.custoDjPagode}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoDjPagode, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoSeguranca', data-valor=${evento.custoSeguranca}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoSeguranca, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='custoSom', data-valor=${evento.custoSom}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.custoSom, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoSocios', data-valor=${evento.provisaoSocios}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoSocios, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoDecoracao', data-valor=${evento.provisaoDecoracao}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoDecoracao, 1, 'POINT', 2, 'COMMA')}"></td>
-                                    <td class="editavel" th:attr="data-id=${evento.id}, data-campo='provisaoTaxa', data-valor=${evento.provisaoTaxa}" th:text="'R$ ' + ${#numbers.formatDecimal(evento.provisaoTaxa, 1, 'POINT', 2, 'COMMA')}"></td>
+                                    <!-- LAÇO THYMELEAF: O Java desenha todas as células de valores sozinho! -->
+                                    <td th:each="col : ${colunasMapeadas}" class="editavel"
+                                        th:attr="data-id=${evento.id}, data-campo=${col.chaveBanco}, data-valor=${evento.getCustoDinamico(col.chaveBanco)}"
+                                        th:text="'R$ ' + ${#numbers.formatDecimal(evento.getCustoDinamico(col.chaveBanco), 1, 'POINT', 2, 'COMMA')}"></td>
 
                                     <td class="text-danger font-weight-bold res-total" th:text="'R$ ' + ${#numbers.formatDecimal(evento.totalCustos, 1, 'POINT', 2, 'COMMA')}"></td>
                                     <td class="text-primary font-weight-bold res-lucro" th:text="'R$ ' + ${#numbers.formatDecimal(evento.lucroDoDia, 1, 'POINT', 2, 'COMMA')}"></td>
                                     <td class="text-primary font-weight-bold res-margem" th:text="${#numbers.formatDecimal(evento.margem, 1, 'POINT', 1, 'COMMA')} + '%'"></td>
 
                                     <td class="text-center">
-                                        <button type="button"
-                                                class="btn btn-xs btn-outline-warning"
-                                                title="Limpar Linha"
-                                                th:data-id="${evento.id}"
-                                                onclick="limparLinha(this)">
+                                        <button type="button" class="btn btn-xs btn-outline-warning" title="Limpar Linha" th:data-id="${evento.id}" onclick="limparLinha(this)">
                                             <i class="fas fa-eraser"></i>
                                         </button>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(eventos)}">
-                                    <td colspan="18" class="text-center text-muted p-4">Nenhum evento registrado nesta competência. Use o botão "Gerar Mês".</td>
+                                    <td th:colspan="${quantidadeColunas + 7}" class="text-center text-muted p-4">Nenhum evento registrado nesta competência. Use o botão "Gerar Mês".</td>
                                 </tr>
                                 </tbody>
                                 <tfoot class="bg-dark text-white font-weight-bold text-right" style="box-shadow: inset 0 2px 0 #000;">
-                                <tr>
+                                <tr id="linha-rodape">
                                     <td colspan="2" class="text-center text-uppercase">Totais do Mês</td>
-                                    <td id="soma-receita" class="text-success">R$ 0,00</td>
-                                    <td id="soma-prov-bar">R$ 0,00</td>
-                                    <td id="soma-custo-fixo">R$ 0,00</td> <td id="soma-problemas">R$ 0,00</td>
-                                    <td id="soma-diarias">R$ 0,00</td>
-                                    <td id="soma-promoters">R$ 0,00</td>
-                                    <td id="soma-dj">R$ 0,00</td>
-                                    <td id="soma-seguranca">R$ 0,00</td>
-                                    <td id="soma-som">R$ 0,00</td>
-                                    <td id="soma-socios">R$ 0,00</td>
-                                    <td id="soma-decoracao">R$ 0,00</td>
-                                    <td id="soma-taxa">R$ 0,00</td>
+                                    <td id="rodape-receitaBar" class="text-success">R$ 0,00</td>
+
+                                    <!-- LAÇO THYMELEAF: O Java desenha os Ids do rodapé sozinho! -->
+                                    <td th:each="col : ${colunasMapeadas}" th:id="'rodape-' + ${col.chaveBanco}">R$ 0,00</td>
+
                                     <td id="soma-total-custos" class="text-danger">R$ 0,00</td>
                                     <td id="soma-lucro" class="text-primary" style="font-size: 1.1em;">R$ 0,00</td>
                                     <td id="media-margem" class="text-primary">0,0%</td>
@@ -276,43 +258,31 @@
     <footer th:replace="~{fragments/geral :: footer}"></footer>
 </div>
 
-<div class="modal fade" id="modal-gerar-mes">
+<div class="modal fade" id="modal-nova-coluna">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
-            <form th:action="@{/eventos/gerar-mes}" method="POST">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title"><i class="fas fa-calendar-plus mr-2"></i>Gerar Agenda</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle mr-2"></i>Nova Coluna</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nome do Custo (ex: Bolo, Copos)</label>
+                    <input type="text" id="input-nome-coluna" class="form-control" placeholder="Digite o nome..." required>
                 </div>
-                <div class="modal-body">
-                    <p class="text-sm text-muted">Isso criará automaticamente todos os dias do mês na tabela com valores zerados.</p>
-                    <div class="form-group">
-                        <label>Mês</label>
-                        <select name="mes" class="form-control" required>
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Ano</label>
-                        <input type="number" name="ano" class="form-control" th:value="${#dates.year(#dates.createNow())}" required>
-                    </div>
+                <div class="form-group">
+                    <label>Tipo do Custo</label>
+                    <select id="select-tipo-coluna" class="form-control">
+                        <option value="_hora">Custo Direto [na hora]</option>
+                        <option value="_prov">Provisão [prov]</option>
+                        <option value="_fixo">Custo Fixo [dia]</option>
+                    </select>
                 </div>
-                <div class="modal-footer justify-content-between p-2">
-                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-sm btn-dark">Gerar Dias</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer justify-content-between p-2">
+                <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="processarNovaColuna()">Criar Coluna</button>
+            </div>
         </div>
     </div>
 </div>
@@ -362,51 +332,6 @@
 
 <script th:inline="none">
 
-    // 1. FUNÇÃO QUE SOMA TUDO NO RODAPÉ
-    function calcularTotaisRodape() {
-        let somas = { receita: 0, provBar: 0, custoFixo: 0, problemas: 0, diarias: 0, promoters: 0, dj: 0, seguranca: 0, som: 0, socios: 0, decoracao: 0, taxa: 0, totalCustos: 0, lucro: 0 };
-
-        $('tbody tr:not(.text-center.text-muted)').each(function() {
-            let tr = $(this);
-            let parseBRL = (tdIndex) => parseFloat(tr.find('td').eq(tdIndex).text().replace('R$ ', '').replace(/\./g, '').replace(',', '.')) || 0;
-
-            somas.receita += parseBRL(2);
-            somas.provBar += parseBRL(3);
-            somas.custoFixo += parseBRL(4); // AQUI! Na exata coluna 4
-            somas.problemas += parseBRL(5);
-            somas.diarias += parseBRL(6);
-            somas.promoters += parseBRL(7);
-            somas.dj += parseBRL(8);
-            somas.seguranca += parseBRL(9);
-            somas.som += parseBRL(10);
-            somas.socios += parseBRL(11);
-            somas.decoracao += parseBRL(12);
-            somas.taxa += parseBRL(13);
-
-            somas.totalCustos += parseBRL(14); // Índice da coluna de Total recuou pra 14
-            somas.lucro += parseBRL(15);       // Índice da coluna de Lucro recuou pra 15
-        });
-
-        let formatBRL = (val) => 'R$ ' + val.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-        $('#soma-receita').text(formatBRL(somas.receita));
-        $('#soma-prov-bar').text(formatBRL(somas.provBar));
-        $('#soma-custo-fixo').text(formatBRL(somas.custoFixo)); // Adicionado ao rodapé!
-        $('#soma-problemas').text(formatBRL(somas.problemas));
-        $('#soma-diarias').text(formatBRL(somas.diarias));
-        $('#soma-promoters').text(formatBRL(somas.promoters));
-        $('#soma-dj').text(formatBRL(somas.dj));
-        $('#soma-seguranca').text(formatBRL(somas.seguranca));
-        $('#soma-som').text(formatBRL(somas.som));
-        $('#soma-socios').text(formatBRL(somas.socios));
-        $('#soma-decoracao').text(formatBRL(somas.decoracao));
-        $('#soma-taxa').text(formatBRL(somas.taxa));
-        $('#soma-total-custos').text(formatBRL(somas.totalCustos));
-        $('#soma-lucro').text(formatBRL(somas.lucro));
-
-        let margemMedia = somas.receita > 0 ? (somas.lucro / somas.receita) * 100 : 0;
-        $('#media-margem').text(margemMedia.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + '%');
-    }
 
     function limparLinha(btnElement) {
         // Pega o ID que está guardado no botão que você clicou
@@ -461,8 +386,90 @@
             alert('Erro ao salvar custo fixo. Verifique sua conexão.');
         });
     }
+    // 1. Abre o Modal em vez de usar aquele 'prompt' feio
+    function adicionarColuna() {
+        $('#input-nome-coluna').val(''); // Limpa o campo
+        $('#modal-nova-coluna').modal('show');
+    }
 
-    // 3. INICIALIZAÇÃO
+    // Quando o cliente cria a coluna no Modal
+    function processarNovaColuna() {
+        let nomeCru = $('#input-nome-coluna').val();
+        let tipo = $('#select-tipo-coluna').val();
+
+        if (!nomeCru || nomeCru.trim() === "") return;
+
+        // Bate no Java e pede pra salvar no banco as configurações do SaaS
+        $.post('/colunas-diario/salvar', {nomeVisual: nomeCru, tipo: tipo}, function(response) {
+            $('#modal-nova-coluna').modal('hide');
+            // MÁGICA: Recarrega a página na mesma hora. O Java vai ver a coluna nova e desenhar ela bonitinha!
+            location.reload();
+        }).fail(function() {
+            alert('Erro ao criar coluna no banco de dados.');
+        });
+    }
+
+    // Quando o cliente clica no Lápis para Renomear (Protegido contra XSS)
+    $('thead').on('click', '.btn-editar-coluna', function(e) {
+        e.stopPropagation(); // Evita acionar outros cliques da tabela
+
+        let idColuna = $(this).data('id');
+        let nomeAtual = $(this).data('nome');
+
+        let novoNome = prompt("Renomear Coluna:", nomeAtual);
+
+        if (novoNome && novoNome.trim() !== "" && novoNome !== nomeAtual) {
+            $.post('/colunas-diario/editar', {id: idColuna, novoNome: novoNome}, function(response) {
+                // MÁGICA: Recarrega a página e o novo nome já aparece na tela!
+                location.reload();
+            }).fail(function() {
+                alert('Erro ao renomear coluna.');
+            });
+        }
+    });
+
+    // 3. A Função de Soma (Intacta e Perfeita)
+    function calcularTotaisRodape() {
+        let somas = {};
+        let totalReceita = 0, totalCustos = 0, totalLucro = 0;
+        let parseBRL = (text) => parseFloat(text.replace('R$ ', '').replace(/\./g, '').replace(',', '.')) || 0;
+
+        $('tbody tr:not(.text-center.text-muted)').each(function() {
+            let tr = $(this);
+
+            // Soma a receita que é fixa
+            totalReceita += parseBRL(tr.find('td').eq(2).text());
+
+            tr.find('.editavel').each(function() {
+                let campo = $(this).data('campo');
+                if(campo !== 'receitaBar' && campo !== 'tipoEvento') {
+                    let valor = parseFloat($(this).attr('data-valor')) || 0;
+                    if (!somas[campo]) somas[campo] = 0;
+                    somas[campo] += valor;
+                }
+            });
+
+            totalCustos += parseBRL(tr.find('.res-total').text());
+            totalLucro += parseBRL(tr.find('.res-lucro').text());
+        });
+
+        let formatBRL = (val) => 'R$ ' + val.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        for (let campo in somas) {
+            if ($('#rodape-' + campo).length) {
+                $('#rodape-' + campo).text(formatBRL(somas[campo]));
+            }
+        }
+
+        // Atualiza a soma da Receita (Fixa)
+        $('#soma-receita').text(formatBRL(totalReceita));
+        $('#soma-total-custos').text(formatBRL(totalCustos));
+        $('#soma-lucro').text(formatBRL(totalLucro));
+
+        let margemMedia = totalReceita > 0 ? (totalLucro / totalReceita) * 100 : 0;
+        $('#media-margem').text(margemMedia.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + '%');
+    }
+
     $(document).ready(function() {
         calcularTotaisRodape();
     });
@@ -476,45 +483,35 @@
             });
         }
 
-        $('.editavel').on('click', function() {
+        // 4. O GATILHO DE EDIÇÃO BLINDADO
+        $('tbody').on('click', '.editavel', function() {
             let $td = $(this);
             if ($td.find('input, select').length > 0) return;
 
             let id = $td.data('id');
             let campo = $td.data('campo');
-            let valorAtual = $td.attr('data-valor');
+            let valorAtual = $td.attr('data-valor') || 0;
 
-            // Aqui a gente identifica quem foi clicado!
             let isTipoEvento = (campo === 'tipoEvento');
-            let isCustoFixo = (campo === 'custoFixo');
+            let isCustoFixo = (campo === 'custoFixo_fixo');
 
             let inputHtml = '';
 
-            // Lógica 1: Se for Tipo de Evento, monta o select de festas
             if (isTipoEvento) {
                 let diaDaLinha = $td.closest('tr').data('dia-semana');
-                let diasDaSemana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-
                 let optionsHtml = '';
                 $('#template-tipos option').each(function() {
                     let nomeOpcao = $(this).text();
-                    let isDia = diasDaSemana.includes(nomeOpcao);
-
-                    if (!isDia || nomeOpcao === diaDaLinha) {
-                        optionsHtml += $(this)[0].outerHTML;
-                    }
+                    let isDia = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].includes(nomeOpcao);
+                    if (!isDia || nomeOpcao === diaDaLinha) optionsHtml += $(this)[0].outerHTML;
                 });
                 inputHtml = `<select class="form-control form-control-sm text-center font-weight-bold">${optionsHtml}</select>`;
-
-                // Lógica 2: Se for Custo Fixo, monta o select estático do seu valor
             } else if (isCustoFixo) {
                 inputHtml = `
                     <select class="form-control form-control-sm text-center font-weight-bold text-dark">
                         <option value="0">R$ 0,00</option>
                         <option value="3289.43">R$ 3.289,43</option>
                     </select>`;
-
-                // Lógica 3: Se for qualquer outra coisa (Receita, DJ, Som, etc), vira input de digitar
             } else {
                 inputHtml = `<input type="number" step="0.01" class="form-control form-control-sm inline-input font-weight-bold text-dark" value="${valorAtual}">`;
             }
@@ -523,9 +520,7 @@
             $td.html(inputHtml);
 
             let $input = $td.find('input, select');
-
-            // Já deixa o select na opção certa quando clica
-            if (isTipoEvento || isCustoFixo) { $input.val(valorAtual); }
+            if (isTipoEvento || isCustoFixo) $input.val(valorAtual);
 
             $input.focus();
             if (!isTipoEvento && !isCustoFixo) $input.select();
@@ -534,7 +529,6 @@
                 if (e.type === 'keypress' && e.which !== 13) return;
 
                 let novoValor = $input.val();
-
                 if (novoValor == valorAtual && (e.type === 'blur' || e.type === 'change')) {
                     $td.html(textoOriginal);
                     return;
@@ -546,24 +540,22 @@
                     if (isTipoEvento) {
                         let nomeSelecionado = $input.find('option:selected').text();
                         let corSelecionada = $input.find('option:selected').data('cor');
-
                         $td.text(nomeSelecionado);
                         $td.css('color', corSelecionada, 'important');
                     } else {
-                        // Tanto os números normais quanto o Custo Fixo vão cair aqui pra formatar em R$
-                        $td.html('R$ ' + parseFloat(novoValor).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                        // Converte pra float com segurança
+                        let num = parseFloat(novoValor.toString().replace(',', '.').trim()) || 0;
+                        $td.html('R$ ' + num.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
 
                         let tr = $('#linha-' + id);
                         tr.find('.res-total').text('R$ ' + response.totalCustos.toLocaleString('pt-BR', {minimumFractionDigits: 2}));
                         tr.find('.res-lucro').text('R$ ' + response.lucroDoDia.toLocaleString('pt-BR', {minimumFractionDigits: 2}));
                         tr.find('.res-margem').text(response.margem.toLocaleString('pt-BR', {minimumFractionDigits: 1}) + '%');
                     }
-
-                    // A MÁGICA FOI INSERIDA AQUI: Recalcula tudo e atualiza o rodapé
                     calcularTotaisRodape();
 
                 }).fail(function() {
-                    alert('Erro ao salvar no banco. Verifique a internet ou recarregue a página.');
+                    alert('Erro ao salvar. Verifique a conexão.');
                     $td.html(textoOriginal);
                 });
             });
